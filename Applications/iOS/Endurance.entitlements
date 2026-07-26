@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Release 1 entitlements. An App Group is provisioned now (even though widgets and
+  the watch app ship later) so the shared SharedTodaySnapshot container needs no
+  migration when those targets arrive. See CAPABILITIES.md.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.example.endurance</string>
+    </array>
+</dict>
+</plist>

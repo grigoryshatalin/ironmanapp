@@ -1,0 +1,98 @@
+# XcodeGen project spec for Endurance.
+#
+# Generate the Xcode project with:   xcodegen generate
+# (install once with:               brew install xcodegen)
+#
+# The generated Endurance.xcodeproj is git-ignored — project.yml is the source of
+# truth. See DECISIONS.md §12 for why the project is generated rather than a
+# hand-maintained .pbxproj.
+#
+# The product name "Endurance" is isolated here (PRODUCT_NAME + display name) and
+# in EnduranceDomain.productName, so a rename touches only these two places.
+
+name: Endurance
+
+options:
+  bundleIdPrefix: com.example.endurance
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "18.0"
+    watchOS: "11.0"
+  minimumXcodeGenVersion: "2.38.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+    # Set your Apple Developer team here (or in Xcode → Signing & Capabilities).
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+packages:
+  EndurancePackages:
+    path: EndurancePackages
+
+targets:
+  Endurance:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: Applications/iOS
+    dependencies:
+      - package: EndurancePackages
+        product: EnduranceDomain
+      - package: EndurancePackages
+        product: EnduranceTrainingPlans
+    settings:
+      base:
+        PRODUCT_NAME: Endurance
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.endurance
+        INFOPLIST_FILE: Applications/iOS/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Applications/iOS/Endurance.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+
+  EnduranceTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Applications/iOSTests
+    dependencies:
+      - target: Endurance
+      - package: EndurancePackages
+        product: EnduranceDomain
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
+  EnduranceUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: Applications/iOSUITests
+    dependencies:
+      - target: Endurance
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Endurance:
+    build:
+      targets:
+        Endurance: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - EnduranceTests
+        - EnduranceUITests

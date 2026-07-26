@@ -1,0 +1,31 @@
+# Xcode / build
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+xcuserdata/
+*.xcuserstate
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# The Xcode project is GENERATED from project.yml via XcodeGen.
+# Regenerate with `xcodegen generate`. Do not commit the generated project.
+Endurance.xcodeproj/
+
+# SwiftPM
+EndurancePackages/.build/
+EndurancePackages/.swiftpm/
+.build/
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# Secrets / local config (never commit)
+*.xcconfig.local
+Secrets.local.xcconfig
