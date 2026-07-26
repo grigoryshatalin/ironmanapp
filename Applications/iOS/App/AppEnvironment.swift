@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import Observation
 import EnduranceDomain
+import EnduranceHealth
 
 /// The four primary tabs.
 enum AppTab: Hashable { case today, plan, progress, settings }
@@ -15,6 +16,9 @@ final class AppEnvironment {
     let store: WorkoutStore
     let notifications: NotificationScheduler
     let snapshotWriter: SnapshotWriter
+    /// Release 2 HealthKit integration. Optional at the boundary — the whole
+    /// training plan works with Health unavailable or denied (§C).
+    let health: HealthCoordinator
 
     /// Routing state driven by notification deep links.
     var selectedTab: AppTab = .today
@@ -24,11 +28,17 @@ final class AppEnvironment {
     /// A user-facing, recoverable error (never a raw system error string).
     var alert: AppAlert?
 
-    init(modelContainer: ModelContainer) {
+    init(modelContainer: ModelContainer, healthImporter: (any HealthWorkoutImporting)? = nil) {
         let store = WorkoutStore(modelContainer: modelContainer)
         self.store = store
         self.notifications = NotificationScheduler()
         self.snapshotWriter = SnapshotWriter(appGroupID: AppConfig.appGroupIdentifier)
+        // Injectable so tests and previews drive a deterministic importer rather
+        // than the real HealthKit store (§T).
+        self.health = HealthCoordinator(
+            importer: healthImporter ?? HealthCoordinator.defaultImporter(),
+            container: modelContainer,
+            workoutStore: store)
     }
 
     /// Called once when the UI appears.

@@ -65,5 +65,13 @@
     </array>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
+    <!-- HealthKit purpose strings (§C). These are shown verbatim in the system
+         permission sheet, so they name what is read, what is written, and that
+         the plan works without granting anything. Vague copy here is both an App
+         Review risk and a genuine failure to inform. -->
+    <key>NSHealthShareUsageDescription</key>
+    <string>Endurance can read your completed workouts, heart rate, distance, and active energy so finished sessions appear against your training plan automatically. Your training plan works fully without this, and nothing leaves your device.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Endurance can save workouts you log here to Health, so your training appears alongside everything else you record. This is optional, off by default, and Endurance never edits workouts created by other apps.</string>
 </dict>
 </plist>

@@ -123,6 +123,26 @@ enum A11y {
         static func category(_ raw: String) -> String { "notifications.category.\(raw)" }
     }
 
+    /// Release 2 — Health (§R).
+    enum Health {
+        static let settingsLink = "health.settingsLink"
+        static let status = "health.status"
+        static let connect = "health.connect"
+        static let disconnect = "health.disconnect"
+        static let importToggle = "health.importToggle"
+        static let exportToggle = "health.exportToggle"
+        static let lastImport = "health.lastImport"
+        static let errorState = "health.errorState"
+        static let openSystemSettings = "health.openSystemSettings"
+        static let inboxLink = "health.inboxLink"
+        static let inboxEmpty = "health.inbox.empty"
+        static func inboxRow(_ index: Int) -> String { "health.inbox.row.\(index)" }
+        static func confirmMatch(_ index: Int) -> String { "health.inbox.confirm.\(index)" }
+        static func rejectMatch(_ index: Int) -> String { "health.inbox.reject.\(index)" }
+        static func chooseOther(_ index: Int) -> String { "health.inbox.choose.\(index)" }
+        static func keepUnplanned(_ index: Int) -> String { "health.inbox.unplanned.\(index)" }
+    }
+
     enum Alert {
         static let dataError = "alert.dataError"
         static let exportFailed = "alert.exportFailed"

@@ -56,6 +56,8 @@ targets:
         product: EnduranceDomain
       - package: EndurancePackages
         product: EnduranceTrainingPlans
+      - package: EndurancePackages
+        product: EnduranceHealth
     settings:
       base:
         PRODUCT_NAME: Endurance
@@ -80,6 +82,8 @@ targets:
       # Migration fixtures build a real Release 1 store from the bundled plan.
       - package: EndurancePackages
         product: EnduranceTrainingPlans
+      - package: EndurancePackages
+        product: EnduranceHealth
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

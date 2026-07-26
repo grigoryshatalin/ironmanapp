@@ -1,6 +1,150 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "activeworkout.completed": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completed"
+          }
+        }
+      }
+    },
+    "activeworkout.discarded": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discarded"
+          }
+        }
+      }
+    },
+    "activeworkout.ending": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finishing"
+          }
+        }
+      }
+    },
+    "activeworkout.failed": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Didn’t save"
+          }
+        }
+      }
+    },
+    "activeworkout.idle": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not started"
+          }
+        }
+      }
+    },
+    "activeworkout.paused": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused"
+          }
+        }
+      }
+    },
+    "activeworkout.preparing": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing"
+          }
+        }
+      }
+    },
+    "activeworkout.recovering": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovering"
+          }
+        }
+      }
+    },
+    "activeworkout.resuming": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resuming"
+          }
+        }
+      }
+    },
+    "activeworkout.running": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In progress"
+          }
+        }
+      }
+    },
+    "activeworkout.saving": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving"
+          }
+        }
+      }
+    },
+    "activeworkout.starting": {
+      "comment": "State of an active workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starting"
+          }
+        }
+      }
+    },
     "completionsource.appTimer": {
       "comment": "Where a completion record came from.",
       "extractionState": "manual",
@@ -57,6 +201,282 @@
           "stringUnit": {
             "state": "translated",
             "value": "Logged manually"
+          }
+        }
+      }
+    },
+    "conversion.exact": {
+      "comment": "How completely a session converts to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fully supported"
+          }
+        }
+      }
+    },
+    "conversion.simplified": {
+      "comment": "How completely a session converts to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simplified"
+          }
+        }
+      }
+    },
+    "conversion.unsupported": {
+      "comment": "How completely a session converts to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not supported"
+          }
+        }
+      }
+    },
+    "conversionwarning.cadenceAlertUnsupported": {
+      "comment": "Something lost when converting a session to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cadence alerts aren’t carried over"
+          }
+        }
+      }
+    },
+    "conversionwarning.customStepLabelsDropped": {
+      "comment": "Something lost when converting a session to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Step names aren’t carried over"
+          }
+        }
+      }
+    },
+    "conversionwarning.distanceGoalConvertedToTime": {
+      "comment": "Something lost when converting a session to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distance goal became a time goal"
+          }
+        }
+      }
+    },
+    "conversionwarning.intensityTargetDropped": {
+      "comment": "Something lost when converting a session to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intensity target isn’t carried over"
+          }
+        }
+      }
+    },
+    "conversionwarning.multisportTransitionsApproximated": {
+      "comment": "Something lost when converting a session to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transitions were approximated"
+          }
+        }
+      }
+    },
+    "conversionwarning.nestedStepsFlattened": {
+      "comment": "Something lost when converting a session to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nested steps were flattened"
+          }
+        }
+      }
+    },
+    "conversionwarning.openGoalApproximated": {
+      "comment": "Something lost when converting a session to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open-ended goal was approximated"
+          }
+        }
+      }
+    },
+    "conversionwarning.paceAlertUnsupported": {
+      "comment": "Something lost when converting a session to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pace alerts aren’t carried over"
+          }
+        }
+      }
+    },
+    "conversionwarning.powerAlertUnsupported": {
+      "comment": "Something lost when converting a session to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Power alerts aren’t carried over"
+          }
+        }
+      }
+    },
+    "conversionwarning.repeatsFlattened": {
+      "comment": "Something lost when converting a session to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repeats were expanded into individual steps"
+          }
+        }
+      }
+    },
+    "healthcap.activeEnergy": {
+      "comment": "A category of health data Endurance may request.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active energy"
+          }
+        }
+      }
+    },
+    "healthcap.cyclingDistance": {
+      "comment": "A category of health data Endurance may request.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cycling distance"
+          }
+        }
+      }
+    },
+    "healthcap.cyclingPower": {
+      "comment": "A category of health data Endurance may request.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cycling power"
+          }
+        }
+      }
+    },
+    "healthcap.heartRate": {
+      "comment": "A category of health data Endurance may request.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heart rate"
+          }
+        }
+      }
+    },
+    "healthcap.restingHeartRate": {
+      "comment": "A category of health data Endurance may request.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resting heart rate"
+          }
+        }
+      }
+    },
+    "healthcap.runningDistance": {
+      "comment": "A category of health data Endurance may request.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Running distance"
+          }
+        }
+      }
+    },
+    "healthcap.runningPower": {
+      "comment": "A category of health data Endurance may request.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Running power"
+          }
+        }
+      }
+    },
+    "healthcap.swimmingDistance": {
+      "comment": "A category of health data Endurance may request.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swimming distance"
+          }
+        }
+      }
+    },
+    "healthcap.workoutRoute": {
+      "comment": "A category of health data Endurance may request.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Workout route"
+          }
+        }
+      }
+    },
+    "healthcap.workouts": {
+      "comment": "A category of health data Endurance may request.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Workouts"
           }
         }
       }
@@ -141,6 +561,78 @@
           "stringUnit": {
             "state": "translated",
             "value": "VO₂"
+          }
+        }
+      }
+    },
+    "match.conflict": {
+      "comment": "How confident Endurance is that an activity matches a planned session.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already has a completion"
+          }
+        }
+      }
+    },
+    "match.duplicate": {
+      "comment": "How confident Endurance is that an activity matches a planned session.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already recorded"
+          }
+        }
+      }
+    },
+    "match.exact": {
+      "comment": "How confident Endurance is that an activity matches a planned session.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matched"
+          }
+        }
+      }
+    },
+    "match.high": {
+      "comment": "How confident Endurance is that an activity matches a planned session.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probably this session"
+          }
+        }
+      }
+    },
+    "match.none": {
+      "comment": "How confident Endurance is that an activity matches a planned session.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unmatched"
+          }
+        }
+      }
+    },
+    "match.possible": {
+      "comment": "How confident Endurance is that an activity matches a planned session.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs your decision"
           }
         }
       }
@@ -297,6 +789,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "Workout reminders"
+          }
+        }
+      }
+    },
+    "provider.appleWatch": {
+      "comment": "Where an imported activity came from.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch"
+          }
+        }
+      }
+    },
+    "provider.garmin": {
+      "comment": "Where an imported activity came from.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Garmin"
+          }
+        }
+      }
+    },
+    "provider.healthKit": {
+      "comment": "Where an imported activity came from.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health"
+          }
+        }
+      }
+    },
+    "provider.strava": {
+      "comment": "Where an imported activity came from.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strava"
+          }
+        }
+      }
+    },
+    "provider.workoutKit": {
+      "comment": "Where an imported activity came from.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Workout app"
           }
         }
       }
@@ -753,6 +1305,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "Taper"
+          }
+        }
+      }
+    },
+    "wkauth.authorized": {
+      "comment": "Whether Endurance may schedule workouts to the Watch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allowed"
+          }
+        }
+      }
+    },
+    "wkauth.denied": {
+      "comment": "Whether Endurance may schedule workouts to the Watch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not allowed"
+          }
+        }
+      }
+    },
+    "wkauth.notDetermined": {
+      "comment": "Whether Endurance may schedule workouts to the Watch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not requested"
+          }
+        }
+      }
+    },
+    "wkauth.unavailable": {
+      "comment": "Whether Endurance may schedule workouts to the Watch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unavailable"
           }
         }
       }
