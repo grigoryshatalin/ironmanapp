@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import EnduranceDomain
+import EnduranceHealth
 
 /// Release 2 persistence (§N).
 ///
@@ -273,6 +274,57 @@ final class SDIntegrationErrorRecord {
         guard let area = IntegrationErrorRecord.Area(rawValue: areaRaw) else { return nil }
         return IntegrationErrorRecord(
             area: area, occurredAt: occurredAt, code: code, isRecoverable: isRecoverable)
+    }
+}
+
+// MARK: - Health export
+
+/// Durable state for one export attempt (§9).
+///
+/// Written *before* the HealthKit save, so a crash between "HealthKit saved" and
+/// "we stored the identifier" leaves a discoverable pending row rather than an
+/// invisible orphan.
+@Model
+final class SDHealthExportRecord {
+    var executionID: UUID = UUID()
+    var scheduledWorkoutID: UUID?
+    var idempotencyKey: String = ""
+    var statusRaw: String = ""
+    var providerWorkoutID: String?
+    var exportedAt: Date?
+    var lastFailureRaw: String?
+    var attemptCount: Int = 0
+    var isEnduranceOwned: Bool = true
+    var updatedAt: Date = Date.distantPast
+    var payload: Data = Data()
+
+    init(domain: HealthExportRecord) throws {
+        self.executionID = domain.executionID
+        self.scheduledWorkoutID = domain.scheduledWorkoutID
+        self.idempotencyKey = domain.idempotencyKey
+        self.statusRaw = domain.status.rawValue
+        self.providerWorkoutID = domain.providerWorkoutID
+        self.exportedAt = domain.exportedAt
+        self.lastFailureRaw = domain.lastFailure?.rawValue
+        self.attemptCount = domain.attemptCount
+        self.isEnduranceOwned = domain.isEnduranceOwned
+        self.updatedAt = domain.updatedAt
+        self.payload = try SDCoders.encoder.encode(domain)
+    }
+
+    func toDomain() throws -> HealthExportRecord {
+        try SDCoders.decoder.decode(HealthExportRecord.self, from: payload)
+    }
+
+    func update(_ domain: HealthExportRecord) throws {
+        statusRaw = domain.status.rawValue
+        providerWorkoutID = domain.providerWorkoutID
+        exportedAt = domain.exportedAt
+        lastFailureRaw = domain.lastFailure?.rawValue
+        attemptCount = domain.attemptCount
+        isEnduranceOwned = domain.isEnduranceOwned
+        updatedAt = domain.updatedAt
+        payload = try SDCoders.encoder.encode(domain)
     }
 }
 

@@ -19,6 +19,7 @@ final class AppEnvironment {
     /// Release 2 HealthKit integration. Optional at the boundary — the whole
     /// training plan works with Health unavailable or denied (§C).
     let health: HealthCoordinator
+    let healthExport: HealthExportCoordinator
 
     /// Routing state driven by notification deep links.
     var selectedTab: AppTab = .today
@@ -28,7 +29,11 @@ final class AppEnvironment {
     /// A user-facing, recoverable error (never a raw system error string).
     var alert: AppAlert?
 
-    init(modelContainer: ModelContainer, healthImporter: (any HealthWorkoutImporting)? = nil) {
+    init(
+        modelContainer: ModelContainer,
+        healthImporter: (any HealthWorkoutImporting)? = nil,
+        healthExporter: (any HealthExporting)? = nil
+    ) {
         let store = WorkoutStore(modelContainer: modelContainer)
         self.store = store
         self.notifications = NotificationScheduler()
@@ -39,6 +44,9 @@ final class AppEnvironment {
             importer: healthImporter ?? HealthCoordinator.defaultImporter(),
             container: modelContainer,
             workoutStore: store)
+        self.healthExport = HealthExportCoordinator(
+            exporter: healthExporter ?? HealthExportCoordinator.defaultExporter(),
+            container: modelContainer)
     }
 
     /// Called once when the UI appears.
@@ -53,6 +61,10 @@ final class AppEnvironment {
             AppLog.persistence.error("Load failed: \(error)")
             alert = .dataError
         }
+        healthExport.refreshAuthorization()
+        // An export interrupted between HealthKit's save and our persistence
+        // must be reconnected, not left as an invisible orphan (§9).
+        await healthExport.recoverOrphanedExports()
         await refreshSideEffects()
     }
 
@@ -66,6 +78,33 @@ final class AppEnvironment {
             calendar: store.configuration?.calendar ?? .current
         )
         snapshotWriter.write(store.todaySnapshot())
+    }
+
+    /// Complete a session and, only afterwards, consider exporting it (§5).
+    ///
+    /// Ordering is deliberate and load-bearing: the local completion is
+    /// persisted first and is never rolled back by a HealthKit failure. Training
+    /// history belongs to the athlete, not to whether a system framework
+    /// accepted a write.
+    func completeWorkout(_ workout: ScheduledWorkout, completion: WorkoutCompletion) async throws {
+        try store.complete(workout.id, completion: completion)
+
+        // Record the execution — the identity everything else de-duplicates on.
+        let execution = WorkoutExecution(
+            scheduledWorkoutID: workout.id,
+            source: completion.source,
+            start: completion.completedAt.addingTimeInterval(
+                -Double((completion.actualDurationMinutes ?? workout.effectivePlannedMinutes) * 60)),
+            durationSeconds: (completion.actualDurationMinutes ?? workout.effectivePlannedMinutes) * 60,
+            distanceMeters: completion.actualDistanceMeters,
+            averageHeartRate: completion.averageHeartRate)
+        store.recordExecution(execution)
+
+        notifications.cancel(for: workout.id)
+        await refreshSideEffects()
+
+        // Non-blocking: a failure here leaves a retryable state, not a lost session.
+        await healthExport.exportIfAutomatic(execution: execution, sport: workout.sport)
     }
 
     /// Route a deep link like `endurance://workout/<uuid>` or `.../review/<week>`.

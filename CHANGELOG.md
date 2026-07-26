@@ -6,7 +6,56 @@ testable stages; each entry records what was added and verified.
 The format is loosely [Keep a Changelog](https://keepachangelog.com/). Dates are
 absolute.
 
-## [Unreleased] — Release 1 (Core training MVP) in progress
+## [Unreleased] — Release 2 (Apple ecosystem) in progress
+
+### 2026‑07‑26 — Release 2 Stage 3: HealthKit write / export
+
+A complete, idempotent export workflow — not a call to `save`.
+
+Added
+- **Export eligibility** as a pure, twelve‑state decision
+  (`ExportEligibilityEvaluator`). Views render it; they never compute it.
+  Evaluation order puts provenance *before* preferences, so the athlete is never
+  told "enable export" for a workout that enabling export still would not write.
+- **`HealthWorkoutExportPayload`** — decided and asserted before any HealthKit
+  object exists. It has nowhere to put fabricated data: absence is absence, not
+  a plausible zero.
+- **`HealthKitWorkoutExporter`** using `HKWorkoutBuilder` (the `HKWorkout`
+  initialisers are deprecated as of iOS 17). Save, replace, delete, and
+  metadata‑based orphan lookup.
+- **`HealthExportCoordinator`** — persists a pending record *before* the save,
+  so a crash between HealthKit accepting a write and our storing the identifier
+  leaves a recoverable row rather than an invisible orphan.
+- **Ownership guard** (`HealthOwnership`) checked twice — against our own record
+  and against HealthKit's source — so Endurance can never delete another app's
+  workout.
+- Export settings states, completion‑flow integration, `SDHealthExportRecord`,
+  and 45 new localized strings.
+
+Refused, deliberately and with tests
+- Re‑exporting a workout imported from Health.
+- Re‑exporting a watch‑recorded execution.
+- Filing a brick or a race as one misleading single‑sport workout.
+- Writing twice for one execution, however the second attempt arrives.
+
+Fixed
+- **A real bug the new tests caught:** `export()` reported `currentlySaving` for
+  a save that had already finished, because `defer` runs *after* the return
+  value is computed. The in‑flight set is now cleared before the state is read.
+
+Migration
+- No new schema version. `SDHealthExportRecord` is additive within v2, which has
+  not shipped. Once v2 ships, adding an entity requires v3.
+
+### 2026‑07‑26 — Release 2 Stage 2: HealthKit read integration
+
+See commit `be2f0b6`.
+
+### 2026‑07‑26 — Release 2 Stage 1: domain model, schema v2, verified migration
+
+See commits `e2db973`, `cdfeb21`.
+
+## [Released to branch] — Release 1 (Core training MVP)
 
 ### 2026‑07‑26 — Release 1 verification & refinement pass
 

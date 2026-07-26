@@ -3,6 +3,7 @@ import SwiftData
 import Observation
 import EnduranceDomain
 import EnduranceTrainingPlans
+import EnduranceHealth
 
 /// The app's single gateway to persisted training state. Views never touch the
 /// `ModelContext` directly (brief §18/§19). All mutations go through domain-typed
@@ -270,6 +271,21 @@ final class WorkoutStore {
         if settings.modelContext == nil { context.insert(settings) }
         try context.save()
         units = u
+    }
+
+    /// Persist a workout execution, collapsing onto an existing one when this
+    /// is the same session observed again (§O).
+    func recordExecution(_ execution: WorkoutExecution) {
+        let existing = ((try? context.fetch(FetchDescriptor<SDWorkoutExecution>())) ?? [])
+            .compactMap { try? $0.toDomain() }
+        let merger = ExecutionMerger()
+        switch merger.resolve(incoming: execution, externalKey: nil, against: existing) {
+        case .insert(let new):
+            if let row = try? SDWorkoutExecution(domain: new) { context.insert(row) }
+        case .attach, .ignore:
+            break // already represented; never create a twin
+        }
+        try? context.save()
     }
 
     // MARK: - Data management (destructive; callers confirm first)

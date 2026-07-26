@@ -29,6 +29,9 @@ final class HealthCoordinator {
         case notConnected         // never asked
         case connected            // asked, and import is on
         case importPaused         // asked, but the athlete turned import off
+
+        /// Whether Health can be used at all on this device.
+        var isUsable: Bool { self != .unavailable }
     }
 
     private let importer: any HealthWorkoutImporting

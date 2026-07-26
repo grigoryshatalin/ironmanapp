@@ -238,3 +238,57 @@ release. The staged implementation sequence is tracked in `CHANGELOG.md`.
 7. **Single fueling/hydration numbers** → configurable ranges, with an explicit
    over‑hydration (hyponatremia) warning, framed as practice targets not medical
    advice.
+
+
+---
+
+# Release 2 decisions
+
+## Why `HKWorkoutBuilder` rather than `HKWorkout(...)`
+
+The `HKWorkout` initialisers are deprecated as of iOS 17. `HKWorkoutBuilder` is
+the current API and also fits the "never fabricate" rule structurally: samples
+are *added*, so a session with no distance contributes no distance sample rather
+than a zero that would read as measured.
+
+## Why read authorization is `unknowable`
+
+`authorizationStatus(for:)` reports share (write) authorization only. HealthKit
+deliberately will not tell an app whether reads were granted, so that a withheld
+category stays invisible. Reporting `.authorized` for a read would therefore be
+a guess presented as fact. Endurance models an explicit `.unknowable` case and
+says "Connected", never "Authorized".
+
+## Why eligibility is a pure function
+
+Twelve states, several of which are refusals that protect the athlete's Health
+record. A refusal scattered across view code is a refusal that eventually stops
+happening. `ExportEligibilityEvaluator` is pure and exhaustively tested; views
+only render its result.
+
+## Why provenance is checked before preferences
+
+An imported workout must never be re-exported. If settings were checked first,
+an athlete with export disabled would be told "enable export" — implying that
+enabling it would write the workout. It would not, and must not.
+
+## Why brick and race are refused
+
+Both are genuinely multisport. HealthKit's single-activity model cannot
+represent them honestly, and filing a brick as one ride would misstate the
+athlete's training. Stage 3 returns `unsupportedMultisport` and keeps the full
+session in Endurance; WorkoutKit (Stage 4) introduces the correct
+representation.
+
+## Why the export record is written before the save
+
+If HealthKit accepts a write and local persistence then fails, the workout
+exists in Health but Endurance cannot see it — it can neither display it nor
+avoid exporting it again. Writing a `pending` record first, and recovering via
+the `executionID` metadata key on next launch, makes that state detectable.
+
+## Why replacement saves before deleting
+
+HealthKit samples are immutable, so an edit is delete + save. Saving first means
+a failure leaves a visible duplicate, which the athlete can see and Endurance can
+reconcile. Deleting first would risk losing the record entirely.

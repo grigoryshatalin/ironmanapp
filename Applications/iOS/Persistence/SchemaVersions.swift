@@ -40,6 +40,7 @@ enum EnduranceSchemaV2: VersionedSchema {
             SDWatchSyncRecord.self,
             SDActiveWorkoutRecovery.self,
             SDIntegrationErrorRecord.self,
+            SDHealthExportRecord.self,
         ]
     }
 }

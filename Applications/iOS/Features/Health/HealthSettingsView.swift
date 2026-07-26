@@ -11,6 +11,7 @@ import EnduranceHealth
 struct HealthSettingsView: View {
     @Environment(AppEnvironment.self) private var env
     private var health: HealthCoordinator { env.health }
+    private var export: HealthExportCoordinator { env.healthExport }
 
     var body: some View {
         List {
@@ -115,9 +116,36 @@ struct HealthSettingsView: View {
                     .accessibilityIdentifier(A11y.Health.importToggle)
                 Toggle("Save my logged workouts to Health", isOn: exportBinding)
                     .accessibilityIdentifier(A11y.Health.exportToggle)
+                LabeledContent("Saving") {
+                    Text(exportStateDescription)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+                .font(.footnote)
+                .accessibilityIdentifier(A11y.Health.exportState)
+                if export.writeStatus == .denied {
+                    Button("Open Health permissions") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    .accessibilityIdentifier(A11y.Health.exportOpenSettings)
+                }
             }
         } footer: {
-            Text("Both are optional and independent. Your 36-week plan works fully without either.")
+            Text("Both are optional and independent. Endurance writes only the workouts you log here — never invented heart rate, power, or route data — and never re-saves a workout that came from Health.")
+        }
+    }
+
+    /// A truthful state, never an implied permission (§4).
+    private var exportStateDescription: String {
+        guard export.isAutoExportEnabled else { return String(localized: "Off") }
+        if !health.connection.isUsable { return String(localized: "Saving unavailable") }
+        switch export.writeStatus {
+        case .authorized: return String(localized: "Ready to save")
+        case .denied: return String(localized: "Permission needed")
+        case .notDetermined: return String(localized: "Permission needed")
+        case .unknowable: return String(localized: "Partially available")
         }
     }
 
@@ -130,8 +158,19 @@ struct HealthSettingsView: View {
             })
     }
 
+    /// Enabling export is what triggers the write-authorization request — never
+    /// at launch, and never bundled with the read request (§4).
     private var exportBinding: Binding<Bool> {
-        Binding(get: { health.isExportEnabled }, set: { health.isExportEnabled = $0 })
+        Binding(
+            get: { export.isAutoExportEnabled },
+            set: { on in
+                health.isExportEnabled = on
+                if on {
+                    Task { await export.enableExport() }
+                } else {
+                    export.isAutoExportEnabled = false
+                }
+            })
     }
 
     // MARK: - Inbox

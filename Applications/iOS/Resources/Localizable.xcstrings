@@ -361,6 +361,426 @@
         }
       }
     },
+    "deleterefusal.importedNotExported": {
+      "comment": "Why Endurance refused to delete a Health workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This workout came from Health"
+          }
+        }
+      }
+    },
+    "deleterefusal.noProviderReference": {
+      "comment": "Why Endurance refused to delete a Health workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Health record to remove"
+          }
+        }
+      }
+    },
+    "deleterefusal.notEnduranceOwned": {
+      "comment": "Why Endurance refused to delete a Health workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endurance didn’t create this workout"
+          }
+        }
+      }
+    },
+    "export.alreadyExported": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved to Health"
+          }
+        }
+      }
+    },
+    "export.currentlySaving": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving…"
+          }
+        }
+      }
+    },
+    "export.eligible": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready to save to Health"
+          }
+        }
+      }
+    },
+    "export.exportDisabled": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not saved to Health"
+          }
+        }
+      }
+    },
+    "export.externallyOwned": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorded by another app"
+          }
+        }
+      }
+    },
+    "export.failedPermanent": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t be saved to Health"
+          }
+        }
+      }
+    },
+    "export.failedRetryable": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t save to Health"
+          }
+        }
+      }
+    },
+    "export.importedFromHealthKit": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imported from Health"
+          }
+        }
+      }
+    },
+    "export.missingRequiredData": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not enough detail to save"
+          }
+        }
+      }
+    },
+    "export.permissionRequired": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permission needed"
+          }
+        }
+      }
+    },
+    "export.unsupportedMultisport": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Multisport sessions aren’t saved to Health yet"
+          }
+        }
+      }
+    },
+    "export.unsupportedSport": {
+      "comment": "Whether a completed session can be written to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not available for this workout"
+          }
+        }
+      }
+    },
+    "exportfail.authorizationDenied": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permission denied"
+          }
+        }
+      }
+    },
+    "exportfail.authorizationNotDetermined": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permission not granted yet"
+          }
+        }
+      }
+    },
+    "exportfail.cancelled": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelled"
+          }
+        }
+      }
+    },
+    "exportfail.deleteFailed": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t remove from Health"
+          }
+        }
+      }
+    },
+    "exportfail.duplicatePrevented": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already saved"
+          }
+        }
+      }
+    },
+    "exportfail.healthDataUnavailable": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health isn’t available"
+          }
+        }
+      }
+    },
+    "exportfail.invalidDuration": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invalid duration"
+          }
+        }
+      }
+    },
+    "exportfail.missingDates": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing dates"
+          }
+        }
+      }
+    },
+    "exportfail.persistenceFailedAfterSave": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved, but not linked yet"
+          }
+        }
+      }
+    },
+    "exportfail.replacementFailed": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replacement didn’t finish"
+          }
+        }
+      }
+    },
+    "exportfail.saveFailed": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save didn’t finish"
+          }
+        }
+      }
+    },
+    "exportfail.unknown": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something went wrong"
+          }
+        }
+      }
+    },
+    "exportfail.unsupportedActivity": {
+      "comment": "Why a Health save failed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsupported activity"
+          }
+        }
+      }
+    },
+    "exportupdate.externallyOwnedCannotModify": {
+      "comment": "Outcome of editing a workout already saved to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Owned by another app"
+          }
+        }
+      }
+    },
+    "exportupdate.healthDeleteFailed": {
+      "comment": "Outcome of editing a workout already saved to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t remove the old Health record"
+          }
+        }
+      }
+    },
+    "exportupdate.healthReplacementRequired": {
+      "comment": "Outcome of editing a workout already saved to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health record needs replacing"
+          }
+        }
+      }
+    },
+    "exportupdate.healthSaveFailedAfterDelete": {
+      "comment": "Outcome of editing a workout already saved to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Old record removed but the new one didn’t save"
+          }
+        }
+      }
+    },
+    "exportupdate.localOnlyUpdated": {
+      "comment": "Outcome of editing a workout already saved to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updated in Endurance only"
+          }
+        }
+      }
+    },
+    "exportupdate.replacedSuccessfully": {
+      "comment": "Outcome of editing a workout already saved to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health record replaced"
+          }
+        }
+      }
+    },
+    "exportupdate.userCancelled": {
+      "comment": "Outcome of editing a workout already saved to Health.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelled"
+          }
+        }
+      }
+    },
     "healthcap.activeEnergy": {
       "comment": "A category of health data Endurance may request.",
       "extractionState": "manual",

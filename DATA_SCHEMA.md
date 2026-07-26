@@ -146,3 +146,50 @@ Regeneration must reconcile to the **same** instances, never duplicate. The
 `scheduledWorkoutID` is a **name‑based UUIDv5** of `planID:templateID:dayIndex`
 (RFC 4122 §4.3, SHA‑1; validated against the standard DNS test vector). Same
 plan + same day → same id across regenerations, devices, and export/import.
+
+
+---
+
+# Release 2 — Schema version 2
+
+Additive only. No Release 1 entity gains, loses, renames or retypes a property,
+so `MigrationStage.lightweight` applies and nothing is rewritten.
+`MigrationTests` proves this against a real on-disk V1 store.
+
+## Entities added
+
+| Entity | Purpose |
+|---|---|
+| `SDExternalWorkoutRecord` | One activity observed from a provider |
+| `SDWorkoutExecution` | A performance of a session, however observed |
+| `SDWorkoutMatchDecision` | The athlete's decision, so suggestions do not return |
+| `SDHealthImportCursor` | Opaque anchored-query anchor, per provider |
+| `SDHealthAuthorizationState` | Per-capability, per-access authorization |
+| `SDHealthExportRecord` | Export status, idempotency key, provider reference, ownership |
+| `SDWorkoutKitScheduleRecord` | Stage 4 (declared, unused) |
+| `SDWatchSyncRecord` | Stage 6 (declared, unused) |
+| `SDActiveWorkoutRecovery` | Stage 5 (declared, unused) |
+| `SDIntegrationErrorRecord` | Non-sensitive integration failure codes |
+
+## CloudKit forward-compatibility
+
+Every Release 2 property is optional or defaulted, and none uses `.unique` —
+CloudKit supports neither.
+
+**Open issue:** the two Release 1 entities (`SDScheduledWorkout`,
+`SDAppSettings`) still use `@Attribute(.unique)`. Dropping a unique constraint is
+itself a migration, so this must be done deliberately in a future schema version
+**before** CloudKit sync is enabled — not discovered when someone turns it on.
+
+## Versioning rule
+
+Schema v2 has not shipped, so entities may still be added to it. **Once v2
+ships, adding an entity requires v3.** A stale v2 store fails with
+`Cannot use staged migration with an unknown model version`; the app degrades to
+an ephemeral store and leaves the file intact rather than crashing.
+
+## Identity
+
+Unchanged. `WorkoutIdentity` remains authoritative; HealthKit UUIDs, WorkoutKit
+identifiers and watch session ids are **references**, never primary identity.
+`deterministicScheduledID` still derives from the plan's canonical day index.

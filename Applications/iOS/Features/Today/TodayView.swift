@@ -224,8 +224,14 @@ struct TodayView: View {
     }
 
     private func complete(_ w: ScheduledWorkout, _ completion: WorkoutCompletion) async {
-        await run { try store.complete(w.id, completion: completion) }
-        env.notifications.cancel(for: w.id) // completing cancels its reminders (§8)
+        // Local completion first; Health export is a non-blocking follow-up that
+        // can never undo it (§5).
+        do {
+            try await env.completeWorkout(w, completion: completion)
+        } catch {
+            AppLog.app.error("Completion failed: \(error)")
+            env.alert = .dataError
+        }
         completionTick += 1
     }
 

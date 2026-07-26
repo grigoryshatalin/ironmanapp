@@ -61,3 +61,28 @@ is enabled before its behavior + permission strings exist (brief §28.21).
 - **App Review 5.1.3 / 1.4.1:** no health data for ads/profiling; disclose data
   collected; include a "consult a professional" reminder; no unsupported medical
   claims.
+
+
+---
+
+# Release 2 capabilities
+
+| Capability | Required by | Free Apple ID? | Notes |
+|---|---|---|---|
+| HealthKit (`com.apple.developer.healthkit`) | Stages 2–3 | Yes for development | Needs `NSHealthShareUsageDescription` and `NSHealthUpdateUsageDescription` |
+| App Groups | Widgets, watch, intents | Paid program | Already provisioned in Release 1 |
+
+**Deliberately not claimed:**
+
+- `com.apple.developer.healthkit.access` (clinical records) — left empty.
+- HealthKit background delivery — no background observation is implemented, so
+  claiming it would request a capability we do not use.
+
+App Review note: HealthKit apps must provide a privacy policy and must not use
+health data for advertising or profiling. Endurance does neither, and has no
+network layer at all.
+
+**Simulator caveat:** test builds use `CODE_SIGNING_ALLOWED=NO`, so the
+entitlement is absent and the log shows
+`Missing com.apple.developer.healthkit entitlement`. The real HealthKit path has
+therefore never executed — see `PHYSICAL_DEVICE_RELEASE_2_CHECKLIST.md`.
