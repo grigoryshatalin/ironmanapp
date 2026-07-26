@@ -3,6 +3,7 @@ import SwiftData
 import Observation
 import EnduranceDomain
 import EnduranceHealth
+import EnduranceWorkoutKit
 
 /// The four primary tabs.
 enum AppTab: Hashable { case today, plan, progress, settings }
@@ -20,6 +21,8 @@ final class AppEnvironment {
     /// training plan works with Health unavailable or denied (§C).
     let health: HealthCoordinator
     let healthExport: HealthExportCoordinator
+    /// Release 2 WorkoutKit scheduling. Off by default (§I).
+    let workoutKit: WorkoutKitCoordinator
 
     /// Routing state driven by notification deep links.
     var selectedTab: AppTab = .today
@@ -32,7 +35,8 @@ final class AppEnvironment {
     init(
         modelContainer: ModelContainer,
         healthImporter: (any HealthWorkoutImporting)? = nil,
-        healthExporter: (any HealthExporting)? = nil
+        healthExporter: (any HealthExporting)? = nil,
+        workoutScheduler: (any WorkoutScheduling)? = nil
     ) {
         let store = WorkoutStore(modelContainer: modelContainer)
         self.store = store
@@ -47,6 +51,10 @@ final class AppEnvironment {
         self.healthExport = HealthExportCoordinator(
             exporter: healthExporter ?? HealthExportCoordinator.defaultExporter(),
             container: modelContainer)
+        self.workoutKit = WorkoutKitCoordinator(
+            scheduler: workoutScheduler ?? WorkoutKitCoordinator.defaultScheduler(),
+            container: modelContainer,
+            workoutStore: store)
     }
 
     /// Called once when the UI appears.
@@ -65,6 +73,10 @@ final class AppEnvironment {
         // An export interrupted between HealthKit's save and our persistence
         // must be reconnected, not left as an invisible orphan (§9).
         await healthExport.recoverOrphanedExports()
+        await workoutKit.refreshAuthorization()
+        // A scheduling call the framework accepted while the app died must be
+        // reconciled, not left diverged (§I).
+        await workoutKit.reconcileWithSystem()
         await refreshSideEffects()
     }
 
@@ -101,6 +113,8 @@ final class AppEnvironment {
         store.recordExecution(execution)
 
         notifications.cancel(for: workout.id)
+        // A completed session must not stay scheduled on the Watch (§I).
+        await workoutKit.reconcileAfterPlanChange(scheduledWorkoutID: workout.id)
         await refreshSideEffects()
 
         // Non-blocking: a failure here leaves a retryable state, not a lost session.

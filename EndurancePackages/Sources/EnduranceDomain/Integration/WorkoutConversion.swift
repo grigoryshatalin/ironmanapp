@@ -123,6 +123,36 @@ public enum WorkoutKitConversionWarning: String, Codable, Sendable, Hashable, Ca
     case rpePreservedAsText
 
     public var localizationKey: String { "workoutkit.warning.\(rawValue)" }
+
+    /// Whether this warning means the *workout itself* differs from the plan.
+    ///
+    /// The distinction decides whether an athlete must consent. Technique cues,
+    /// fueling notes, gear lists and RPE text are supplemental: the Workout app
+    /// has nowhere to display them, but every interval, goal and target still
+    /// transfers intact, so the session performed on the Watch *is* the planned
+    /// session. Combining steps, flattening repeats, dropping transitions or
+    /// collapsing a shortened session to one goal genuinely change what gets
+    /// trained, and those require explicit approval.
+    ///
+    /// Without this split, essentially the whole bundled plan converts as
+    /// "simplified" — 34 of the first 60 sessions carry technique cues — and
+    /// nothing would ever schedule automatically, making the feature look broken
+    /// while being technically correct.
+    public var isStructural: Bool {
+        switch self {
+        case .supplementalInstructionsRemainInEndurance,
+             .techniqueCuesRemainInEndurance,
+             .fuelingInstructionsRemainInEndurance,
+             .rpePreservedAsText:
+            return false
+        case .transitionInstructionsOmitted,
+             .nestedRepetitionsFlattened,
+             .stepsCombined,
+             .drillRepresentedAsWork,
+             .shortenedWorkoutUsesSingleGoal:
+            return true
+        }
+    }
 }
 
 public enum WorkoutKitUnsupportedReason: String, Codable, Sendable, Hashable, CaseIterable {
@@ -251,7 +281,7 @@ public struct WorkoutKitConverter: Sendable {
         if structure.warmup.isEmpty && structure.mainSet.isEmpty && structure.cooldown.isEmpty {
             return result(
                 workout, template: template,
-                outcome: warnings.isEmpty ? .exact : .simplified,
+                outcome: Self.outcome(for: warnings),
                 representation: .singleGoal(activity: activity, location: location,
                                             goal: baseGoal(for: workout)),
                 warnings: warnings)
@@ -280,10 +310,16 @@ public struct WorkoutKitConverter: Sendable {
         if hasRPE { warnings.append(.rpePreservedAsText) }
         return result(
             workout, template: template,
-            outcome: warnings.isEmpty ? .exact : .simplified,
+            outcome: Self.outcome(for: warnings),
             representation: .custom(activity: activity, location: location, displayName: workout.title,
                                     warmup: warmup, blocks: blocks, cooldown: cooldown),
             warnings: warnings)
+    }
+
+    /// `.simplified` only when something structural changed; supplemental
+    /// disclosures are still reported, but do not gate scheduling.
+    static func outcome(for warnings: [WorkoutKitConversionWarning]) -> WorkoutKitConversionOutcome {
+        warnings.contains(where: \.isStructural) ? .simplified : .exact
     }
 
     private func unsupported(

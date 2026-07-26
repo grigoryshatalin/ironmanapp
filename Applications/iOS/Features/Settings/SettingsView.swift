@@ -31,6 +31,10 @@ struct SettingsView: View {
                     Label("Health", systemImage: "heart")
                 }
                 .accessibilityIdentifier(A11y.Health.settingsLink)
+                NavigationLink { WorkoutKitSettingsView() } label: {
+                    Label("Apple Workout", systemImage: "applewatch")
+                }
+                .accessibilityIdentifier(A11y.WorkoutKit.settingsLink)
             }
             dataSection
             aboutSection

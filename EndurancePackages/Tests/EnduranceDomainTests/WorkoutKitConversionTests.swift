@@ -160,13 +160,33 @@ struct WorkoutKitConversionTests {
 
     // MARK: - Simplified, with disclosure
 
-    @Test("Technique cues are disclosed as remaining in Endurance")
-    func techniqueCuesDisclosed() {
+    /// Supplemental content is disclosed but does not gate scheduling: the
+    /// intervals, goals and targets all transfer, so the session performed on
+    /// the Watch *is* the planned session.
+    @Test("Technique cues are disclosed but still schedule automatically")
+    func techniqueCuesDisclosedWithoutBlocking() {
         let result = converter.convert(scheduled(), template: template(cues: ["High elbow catch"]))
-        #expect(result.outcome == .simplified)
         #expect(result.warnings.contains(.techniqueCuesRemainInEndurance))
-        #expect(result.requiresUserConfirmation, "a lossy conversion must be confirmed")
-        #expect(!result.automaticSchedulingAllowed)
+        #expect(result.outcome == .exact)
+        #expect(result.automaticSchedulingAllowed,
+                "supplemental prose staying behind is not a change to the workout")
+        #expect(!result.requiresUserConfirmation)
+    }
+
+    @Test("Supplemental warnings are marked non-structural; structural ones are not")
+    func warningClassification() {
+        for warning: WorkoutKitConversionWarning in [
+            .techniqueCuesRemainInEndurance, .fuelingInstructionsRemainInEndurance,
+            .supplementalInstructionsRemainInEndurance, .rpePreservedAsText,
+        ] {
+            #expect(!warning.isStructural, "\(warning) does not change the workout")
+        }
+        for warning: WorkoutKitConversionWarning in [
+            .stepsCombined, .nestedRepetitionsFlattened, .shortenedWorkoutUsesSingleGoal,
+            .transitionInstructionsOmitted, .drillRepresentedAsWork,
+        ] {
+            #expect(warning.isStructural, "\(warning) changes what gets trained")
+        }
     }
 
     @Test("Fueling guidance is disclosed rather than silently dropped")
@@ -181,6 +201,19 @@ struct WorkoutKitConversionTests {
         let result = converter.convert(
             scheduled(), template: template(gear: ["Wetsuit"], safety: ["Swim with a buddy"]))
         #expect(result.warnings.contains(.supplementalInstructionsRemainInEndurance))
+        #expect(result.outcome == .exact, "a gear list is not a change to the session")
+    }
+
+    @Test("A structural change does require confirmation")
+    func structuralChangeRequiresConfirmation() {
+        let result = converter.convert(
+            scheduled(),
+            template: template(
+                warmup: [step(kind: .warmup, seconds: 300), step(kind: .warmup, seconds: 300)],
+                mainSet: [step(kind: .steady, seconds: 1800)]))
+        #expect(result.outcome == .simplified)
+        #expect(result.requiresUserConfirmation)
+        #expect(!result.automaticSchedulingAllowed)
     }
 
     /// The important one: a shortened session must not leave the original, longer

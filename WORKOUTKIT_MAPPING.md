@@ -1,0 +1,156 @@
+# WorkoutKit Mapping — Endurance
+
+How an Endurance session becomes a schedulable Apple Workout, and what
+deliberately does not.
+
+Status: **Release 2, Stage 4.** Conversion policy, scheduling coordinator and
+settings are implemented and unit-tested. **`WorkoutScheduler` has never run** —
+no workout has reached a real Watch. See §8.
+
+---
+
+## 1. Layering
+
+```
+EnduranceDomain           WorkoutKitConverter + representations. No WorkoutKit.
+      ▲ domain types only
+EnduranceWorkoutKit       WorkoutKitSchedulerAdapter, #if canImport(WorkoutKit)
+      ▲ WorkoutScheduling protocol
+Endurance (app)           WorkoutKitCoordinator, WorkoutKitSettingsView
+```
+
+The converter decides *fidelity*; the adapter only builds framework objects. So
+every rule below is asserted on the host with no device.
+
+---
+
+## 2. Three outcomes
+
+| Outcome | Meaning | Scheduling |
+|---|---|---|
+| `exact` | The workout transfers faithfully | Automatic |
+| `simplified` | The workout itself differs | **Requires consent** |
+| `unsupported` | Cannot be represented | Never scheduled; stays whole in Endurance |
+
+An `unsupported` result carries a stated reason and **no** partial
+representation — a half-converted workout is worse than none.
+
+---
+
+## 3. Structural vs supplemental — the key distinction
+
+Not every disclosure is a change to the workout.
+
+**Supplemental** (still `exact`, disclosed but not gating):
+
+| Warning | Why it does not gate |
+|---|---|
+| `techniqueCuesRemainInEndurance` | Cue text; the Workout app has nowhere to show it |
+| `fuelingInstructionsRemainInEndurance` | Guidance, not workout structure |
+| `supplementalInstructionsRemainInEndurance` | Gear and safety notes |
+| `rpePreservedAsText` | Effort guidance kept as a step name, never fabricated into a sensor alert |
+
+In all four, every interval, goal and target transfers intact. The session
+performed on the Watch *is* the planned session.
+
+**Structural** (forces `simplified`, requires consent):
+
+| Warning | What actually changes |
+|---|---|
+| `stepsCombined` | Steps merged into one |
+| `nestedRepetitionsFlattened` | Repeat structure altered |
+| `shortenedWorkoutUsesSingleGoal` | Intervals replaced by one time goal |
+| `transitionInstructionsOmitted` | Content dropped |
+| `drillRepresentedAsWork` | A drill appears as a work interval |
+
+### Why this split exists
+
+It was added in Stage 4 to fix a real defect. The inherited policy treated *any*
+disclosure as a simplification. Because 34 of the first 60 bundled sessions carry
+technique cues, the measured result was:
+
+```
+before:  exact 0   simplified 28   unsupported 32
+after:   exact 17  simplified 11   unsupported 32
+```
+
+With zero exact conversions, `automaticSchedulingAllowed` was never true — an
+athlete could enable the feature and nothing would ever reach their Watch. The
+behaviour was technically correct and practically useless.
+`BundledPlanConversionTests` now fails if that returns.
+
+---
+
+## 4. Sport and goal mapping
+
+| Endurance sport | WorkoutKit activity |
+|---|---|
+| Run | `running` |
+| Bike | `cycling` |
+| Swim | `swimming` |
+| Strength, Mobility, Recovery | **unsupported** — no honest equivalent |
+| Brick | **unsupported** — needs linked components |
+| Race | **unsupported** — needs structured multisport |
+
+Goals: distance preferred when the plan states one, else planned time, else
+open. A pool swim with both distance and time uses the pool goal; open water
+does not. An unknown location stays unknown rather than being guessed.
+
+Targets map one-to-one to alerts: heart rate, speed, power, cadence. **An RPE
+zone never becomes an alert** — it is preserved as text.
+
+---
+
+## 5. Scheduling policy
+
+- **Off by default.** Authorization is requested only when the athlete enables it.
+- **Only an upcoming window** is synchronized — next session, 3, 7 or 14 days.
+  Never all 382.
+- **Exact schedules automatically; simplified waits for consent**, approved
+  against the conversion *fingerprint*, so a later, different simplification of
+  the same session needs fresh approval rather than inheriting the old one.
+- **Completed, skipped, replaced or moved sessions are removed** from the Watch.
+  A stale structured workout on someone's wrist is worse than none.
+- A schedule produced by an **older converter version reports `stale`**, not
+  `scheduled`.
+
+Known limitation: with the *next session only* horizon, if that session is
+unrepresentable (day one of the bundled plan is mobility), nothing is sent. The
+settings preview shows the per-session status so this is visible rather than
+mysterious.
+
+---
+
+## 6. Identity
+
+`deterministicWorkoutPlanID` derives from the Endurance scheduled-workout ID plus
+the conversion version. It is **not** a HealthKit UUID and **not** an execution
+ID. A conversion-behaviour change therefore yields a new plan identity rather
+than silently managing an obsolete one.
+
+---
+
+## 7. Recovery
+
+The schedule record is written **before** the framework call. If the call
+succeeds and the app dies before the local transaction finishes,
+`reconcileWithSystem()` compares our records against
+`WorkoutScheduler.scheduledWorkouts` on next launch and corrects both directions:
+a record stuck at `scheduling` that is live becomes `scheduled`; a record
+claiming `scheduled` that the system no longer has becomes `removed`.
+
+---
+
+## 8. Not verified
+
+Everything above rests on unit tests with an injected fake scheduler and a clean
+iOS build. **No part of this has touched real WorkoutKit.** Specifically unverified:
+
+- `WorkoutScheduler.requestAuthorization()` and its system prompt.
+- Whether a converted plan is accepted by `WorkoutScheduler.schedule(_:at:)`.
+- Whether scheduled workouts appear in the Workout app on a paired Watch.
+- Whether alerts, goals and interval blocks render as intended.
+- Removal and reconciliation against the real system schedule.
+- Behaviour when authorization is revoked externally.
+
+See `PHYSICAL_DEVICE_RELEASE_2_CHECKLIST.md`.

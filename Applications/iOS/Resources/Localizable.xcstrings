@@ -1765,6 +1765,18 @@
         }
       }
     },
+    "wkauth.restricted": {
+      "comment": "Whether Endurance may schedule workouts to the Watch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restricted"
+          }
+        }
+      }
+    },
     "wkauth.unavailable": {
       "comment": "Whether Endurance may schedule workouts to the Watch.",
       "extractionState": "manual",
@@ -1773,6 +1785,474 @@
           "stringUnit": {
             "state": "translated",
             "value": "Unavailable"
+          }
+        }
+      }
+    },
+    "workoutkit.conversion.exact": {
+      "comment": "How completely a session converts to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fully supported"
+          }
+        }
+      }
+    },
+    "workoutkit.conversion.simplified": {
+      "comment": "How completely a session converts to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simplified"
+          }
+        }
+      }
+    },
+    "workoutkit.conversion.unsupported": {
+      "comment": "How completely a session converts to an Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not supported"
+          }
+        }
+      }
+    },
+    "workoutkit.horizon.days14": {
+      "comment": "How far ahead sessions are sent to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next 14 days"
+          }
+        }
+      }
+    },
+    "workoutkit.horizon.days3": {
+      "comment": "How far ahead sessions are sent to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next 3 days"
+          }
+        }
+      }
+    },
+    "workoutkit.horizon.days7": {
+      "comment": "How far ahead sessions are sent to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next 7 days"
+          }
+        }
+      }
+    },
+    "workoutkit.horizon.nextWorkout": {
+      "comment": "How far ahead sessions are sent to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next session only"
+          }
+        }
+      }
+    },
+    "workoutkit.horizon.off": {
+      "comment": "How far ahead sessions are sent to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        }
+      }
+    },
+    "workoutkit.status.authorizationRequired": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permission needed"
+          }
+        }
+      }
+    },
+    "workoutkit.status.exactAvailable": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready to send"
+          }
+        }
+      }
+    },
+    "workoutkit.status.failedPermanent": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t be sent"
+          }
+        }
+      }
+    },
+    "workoutkit.status.failedRetryable": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Didn’t send"
+          }
+        }
+      }
+    },
+    "workoutkit.status.notEvaluated": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not checked yet"
+          }
+        }
+      }
+    },
+    "workoutkit.status.removed": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removed"
+          }
+        }
+      }
+    },
+    "workoutkit.status.removing": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removing…"
+          }
+        }
+      }
+    },
+    "workoutkit.status.rescheduling": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updating…"
+          }
+        }
+      }
+    },
+    "workoutkit.status.scheduled": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On your Watch"
+          }
+        }
+      }
+    },
+    "workoutkit.status.scheduling": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending…"
+          }
+        }
+      }
+    },
+    "workoutkit.status.simplifiedAvailable": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs your OK"
+          }
+        }
+      }
+    },
+    "workoutkit.status.stale": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs refreshing"
+          }
+        }
+      }
+    },
+    "workoutkit.status.unsupported": {
+      "comment": "State of a session's Apple Workout schedule.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stays in Endurance"
+          }
+        }
+      }
+    },
+    "workoutkit.unsupported.brickRequiresLinkedComponents": {
+      "comment": "Why a session cannot be scheduled to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brick sessions need linked workouts"
+          }
+        }
+      }
+    },
+    "workoutkit.unsupported.invalidWorkoutStructure": {
+      "comment": "Why a session cannot be scheduled to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This structure can’t be represented"
+          }
+        }
+      }
+    },
+    "workoutkit.unsupported.missingTemplate": {
+      "comment": "Why a session cannot be scheduled to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Session details are unavailable"
+          }
+        }
+      }
+    },
+    "workoutkit.unsupported.nestedRepetitions": {
+      "comment": "Why a session cannot be scheduled to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nested repeats can’t be represented"
+          }
+        }
+      }
+    },
+    "workoutkit.unsupported.noSchedulableGoal": {
+      "comment": "Why a session cannot be scheduled to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No goal to schedule"
+          }
+        }
+      }
+    },
+    "workoutkit.unsupported.raceRequiresStructuredMultisport": {
+      "comment": "Why a session cannot be scheduled to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Race sessions need structured multisport"
+          }
+        }
+      }
+    },
+    "workoutkit.unsupported.unsupportedAlert": {
+      "comment": "Why a session cannot be scheduled to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This target can’t be represented"
+          }
+        }
+      }
+    },
+    "workoutkit.unsupported.unsupportedGoal": {
+      "comment": "Why a session cannot be scheduled to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This goal can’t be represented"
+          }
+        }
+      }
+    },
+    "workoutkit.unsupported.unsupportedSport": {
+      "comment": "Why a session cannot be scheduled to Apple Workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Workout can’t represent this sport"
+          }
+        }
+      }
+    },
+    "workoutkit.warning.drillRepresentedAsWork": {
+      "comment": "Something that does not carry over to the Apple Workout app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drills appear as work intervals"
+          }
+        }
+      }
+    },
+    "workoutkit.warning.fuelingInstructionsRemainInEndurance": {
+      "comment": "Something that does not carry over to the Apple Workout app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fueling guidance stays in Endurance"
+          }
+        }
+      }
+    },
+    "workoutkit.warning.nestedRepetitionsFlattened": {
+      "comment": "Something that does not carry over to the Apple Workout app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nested repeats were flattened"
+          }
+        }
+      }
+    },
+    "workoutkit.warning.rpePreservedAsText": {
+      "comment": "Something that does not carry over to the Apple Workout app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effort guidance appears as text, not an alert"
+          }
+        }
+      }
+    },
+    "workoutkit.warning.shortenedWorkoutUsesSingleGoal": {
+      "comment": "Something that does not carry over to the Apple Workout app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortened session sends as one time goal"
+          }
+        }
+      }
+    },
+    "workoutkit.warning.stepsCombined": {
+      "comment": "Something that does not carry over to the Apple Workout app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some steps were combined"
+          }
+        }
+      }
+    },
+    "workoutkit.warning.supplementalInstructionsRemainInEndurance": {
+      "comment": "Something that does not carry over to the Apple Workout app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gear and safety notes stay in Endurance"
+          }
+        }
+      }
+    },
+    "workoutkit.warning.techniqueCuesRemainInEndurance": {
+      "comment": "Something that does not carry over to the Apple Workout app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Technique cues stay in Endurance"
+          }
+        }
+      }
+    },
+    "workoutkit.warning.transitionInstructionsOmitted": {
+      "comment": "Something that does not carry over to the Apple Workout app.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transition instructions aren’t carried over"
           }
         }
       }

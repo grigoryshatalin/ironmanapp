@@ -147,6 +147,20 @@ enum A11y {
         static func keepUnplanned(_ index: Int) -> String { "health.inbox.unplanned.\(index)" }
     }
 
+    /// Release 2 — WorkoutKit (§R).
+    enum WorkoutKit {
+        static let settingsLink = "workoutkit.settingsLink"
+        static let authorization = "workoutkit.authorization"
+        static let enableToggle = "workoutkit.enableToggle"
+        static let horizon = "workoutkit.horizon"
+        static let lastSync = "workoutkit.lastSync"
+        static let failure = "workoutkit.failure"
+        static let resync = "workoutkit.resync"
+        static let removeAll = "workoutkit.removeAll"
+        static func previewRow(_ index: Int) -> String { "workoutkit.preview.\(index)" }
+        static func approve(_ index: Int) -> String { "workoutkit.approve.\(index)" }
+    }
+
     enum Alert {
         static let dataError = "alert.dataError"
         static let exportFailed = "alert.exportFailed"

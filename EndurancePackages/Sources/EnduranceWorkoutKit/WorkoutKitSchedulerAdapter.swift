@@ -249,7 +249,7 @@ private extension String {
     var nilIfEmpty: String? { isEmpty ? nil : self }
 }
 
-#else
+#endif
 
 /// Production fallback for an OS/framework without WorkoutKit. It never
 /// fabricates scheduling success; tests inject their own fake adapter.
@@ -271,5 +271,3 @@ public struct UnavailableWorkoutKitScheduler: WorkoutScheduling {
         throw WorkoutKitSchedulingError.workoutKitUnavailable
     }
 }
-
-#endif

@@ -81,19 +81,40 @@ This was never closed and remains **mandatory before any public distribution**.
 
 ---
 
-## D. Stages 4–8 — not yet implemented
+## D. WorkoutKit — Stage 4
 
-WorkoutKit scheduling, active workout recording, the watchOS app, Live
-Activities, widgets, and App Intents are not built. Their hardware checks will be
-added as each stage lands.
+| Check | Status |
+|---|---|
+| `WorkoutScheduler.isSupported` on a real device | ⛔ iPhone |
+| Enabling scheduling shows the system prompt | ⛔ iPhone |
+| A converted plan is accepted by `schedule(_:at:)` | ⛔ iPhone |
+| Scheduled sessions appear in the Workout app | ⛔ Watch |
+| Interval blocks and repeats render as intended | ⛔ Watch |
+| Heart-rate / power / cadence alerts render | ⛔ Watch |
+| Pool swim goals render correctly | ⛔ Watch |
+| A simplified session sends only after consent | ⛔ iPhone (✅ unit) |
+| Completing a session removes it from the Watch | ⛔ Watch (✅ unit) |
+| Skipping removes it | ⛔ Watch (✅ unit) |
+| Moving updates the scheduled slot | ⛔ Watch (✅ unit) |
+| Repeated sync does not duplicate | ⛔ Watch (✅ unit) |
+| Removing all affects only Endurance plans | ⛔ Watch (✅ unit) |
+| Reconciliation after app termination mid-schedule | ⛔ iPhone (✅ unit) |
+| Revoking authorization externally is handled | ⛔ iPhone |
+| Unsupported sessions never appear on the Watch | ⛔ Watch (✅ unit) |
+
+## E. Stages 5–8 — not yet implemented
+
+Active workout recording, the watchOS app, Live Activities, widgets and App
+Intents are not built. Their hardware checks will be added as each stage lands.
 
 ---
 
-## E. Known simulator limitations
+## F. Known simulator limitations
 
 - Tests build with `CODE_SIGNING_ALLOWED=NO`, so the HealthKit entitlement is
   absent and the log shows
   `Missing com.apple.developer.healthkit entitlement`. **No simulator run has
   exercised the real HealthKit path.**
 - The Simulator has no Health database worth importing from.
+- `WorkoutScheduler` has never been invoked; the simulator has no paired Watch.
 - Notification delivery timing and tap-through are not faithfully reproducible.

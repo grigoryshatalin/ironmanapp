@@ -21,12 +21,12 @@ Recorded per §A before any Release 2 production code was written.
 
 | Suite | Release 1 baseline | After Stage 3 |
 |---|---|---|
-| Domain + health packages (`swift test`) | 69 | **174** |
-| App unit tests | 4 | **41** |
+| Domain + health + WorkoutKit (`swift test`) | 69 | **209** |
+| App unit tests | 4 | **62** |
 | UI acceptance | 7 | 7 |
 | Accessibility matrix | 9 | 9 |
 | Screenshot capture | 9 | 9 |
-| **App target total** | **29** | **66** |
+| **App target total** | **29** | **87** |
 | Warnings (clean `build-for-testing`, **all targets**) | 0 | **0** |
 
 > **Correction.** An earlier Stage 3 report claimed zero warnings on the basis of
@@ -41,8 +41,9 @@ Recorded per §A before any Release 2 production code was written.
 New in Stage 3: 45 pure tests (eligibility, payload, ownership) and 18 app tests
 (export workflow, idempotency, orphan recovery, deletion, round trip).
 
-**Final Stage 3 result, from a single uncontended run:**
-`174` domain + `66` app tests, **0 failures, 0 warnings**.
+**Final Stage 4 result, from a single uncontended run:**
+`209` domain + `87` app tests, **0 failures, 0 warnings** from a clean
+`build-for-testing` across all targets.
 
 ### Test-suite robustness
 
@@ -80,7 +81,7 @@ xcodebuild build-for-testing -project Endurance.xcodeproj -scheme Endurance \
 | 1. Baseline, schema v2, migration | ✅ complete, committed |
 | 2. HealthKit read | ✅ complete, committed |
 | 3. HealthKit write | ✅ complete, committed |
-| 4. WorkoutKit | ⛔ not started |
+| 4. WorkoutKit | ✅ conversion, coordinator, settings — committed |
 | 5. Active workout | ◐ state machine + monotonic clock only |
 | 6. Apple Watch | ⛔ not started |
 | 7. Live Activities | ⛔ not started |
@@ -110,6 +111,32 @@ fails with `Cannot use staged migration with an unknown model version`; the app
 degrades to an ephemeral store and leaves the file intact.
 
 ---
+
+## 4a. Stage 4 — WorkoutKit
+
+Inherited from another agent: the domain conversion policy and scheduler adapter
+were already written and coherent, but had **no tests**, and the adapter had
+never been compiled for iOS.
+
+**Defect found and fixed — the feature did not work.** The inherited policy
+treated any disclosure as a simplification. Measured against the real bundled
+plan:
+
+```
+before:  exact 0   simplified 28   unsupported 32   (first 60 sessions)
+after:   exact 17  simplified 11   unsupported 32
+```
+
+With zero exact conversions, nothing ever scheduled automatically: an athlete
+could switch the feature on and never see a workout reach their Watch.
+`WorkoutKitConversionWarning.isStructural` now separates supplemental content
+(technique cues, fueling, gear, RPE-as-text — the workout transfers intact) from
+genuine structural change (combined steps, flattened repeats, a shortened session
+collapsed to one goal). Only the latter requires consent.
+`BundledPlanConversionTests` fails if this regresses.
+
+Also fixed: `UnavailableWorkoutKitScheduler` existed only in the `#else` branch,
+so it was absent on iOS where it is needed as the pre-iOS-17 fallback.
 
 ## 5. Defects found by the new tests
 
