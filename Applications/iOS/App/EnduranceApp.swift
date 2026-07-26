@@ -25,7 +25,7 @@ struct EnduranceApp: App {
     /// the app still launches and can surface a recoverable error state rather
     /// than crashing (brief §21: never show raw internal errors / never crash).
     private static func makeContainer() -> ModelContainer {
-        let schema = Schema([SDScheduledWorkout.self, SDAppSettings.self])
+        let schema = EnduranceSchema.current
         // UI tests need a guaranteed-cold start. The flag is passed only on the
         // FIRST launch of a test, so subsequent relaunches in the same test see
         // real persisted data — which is the whole point of those assertions.
@@ -34,9 +34,18 @@ struct EnduranceApp: App {
         }
         do {
             let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-            return try ModelContainer(for: schema, configurations: [config])
+            // A Release 1 store is migrated forward here. The stage is additive
+            // and lightweight, so nothing is rewritten and no data is lost;
+            // `MigrationTests` proves that against a real on-disk V1 store.
+            return try ModelContainer(
+                for: schema,
+                migrationPlan: EnduranceSchema.migrationPlan,
+                configurations: [config])
         } catch {
-            // Log and degrade to an ephemeral store; the UI shows a data-error state.
+            // A migration failure must never look like a crash or silently
+            // discard the athlete's history (§P). Degrade to an ephemeral store
+            // so the app still launches and can explain itself; the on-disk
+            // store is left untouched for a later retry.
             AppLog.persistence.error("Persistent store unavailable: \(error). Falling back to in-memory.")
             let mem = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             // If even this fails the app genuinely cannot run; that is a true fatal.

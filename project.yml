@@ -77,6 +77,9 @@ targets:
       - target: Endurance
       - package: EndurancePackages
         product: EnduranceDomain
+      # Migration fixtures build a real Release 1 store from the bundled plan.
+      - package: EndurancePackages
+        product: EnduranceTrainingPlans
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
