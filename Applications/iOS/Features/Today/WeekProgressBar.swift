@@ -14,24 +14,34 @@ struct WeekProgressBar: View {
         store.plan?.weeks.first { $0.weekNumber == week }?.load == .recovery
     }
 
+    private func accessibilityText(_ p: ProgressCalculator.WeekProgress) -> String {
+        let base = String(localized: "Week \(week): \(p.completedSessionCount) of \(p.sessionCount) sessions done")
+        guard isRecovery else { return base }
+        return base + ", " + String(localized: "recovery week")
+    }
+
     var body: some View {
         let p = progress
         let fmt = DisplayFormatter(units: store.units)
         VStack(alignment: .leading, spacing: Theme.Space.xs) {
             ProgressView(value: p.completionFraction)
                 .tint(isRecovery ? .purple : .accentColor)
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 Text("\(fmt.duration(minutes: p.completedMinutes)) of \(fmt.duration(minutes: p.plannedMinutes))")
+                    .monospacedDigit()
                 if isRecovery {
-                    Text("· Recovery week").foregroundStyle(.purple)
+                    // Text, not a color, states that lower volume is intended.
+                    Text("· Recovery week")
                 }
-                Spacer()
+                Spacer(minLength: Theme.Space.s)
                 Text("\(p.completedSessionCount)/\(p.sessionCount) sessions")
+                    .monospacedDigit()
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Week \(week): \(p.completedSessionCount) of \(p.sessionCount) sessions done" + (isRecovery ? ", recovery week" : ""))
+        .accessibilityLabel(accessibilityText(p))
     }
 }

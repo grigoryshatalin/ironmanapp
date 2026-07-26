@@ -17,21 +17,27 @@ app: quiet, legible, native, and accessible.
 
 ---
 
-## What is verified here vs. authored for Xcode
+## Verification status
 
-This repository was partly built in a headless environment with the Swift
-toolchain but **without Xcode**, so it is honest about what is machine‑verified:
+Everything below is machine‑verified on Xcode 26.6 (iOS 26.5 SDK) as of
+2026‑07‑25:
 
 | Component | Status |
 |---|---|
-| `EnduranceDomain` (models, date engine, validator, notifications, progress, adaptation) | **Compiled + 57 tests passing** on the Swift 6 toolchain (`swift test`) |
+| `EnduranceDomain` (models, date engine, validator, notifications, progress, adaptation) | **Compiled + 57 tests passing** (`swift test`) |
 | `EnduranceTrainingPlans` — generated 36‑week / 252‑day / 382‑workout plan JSON | **Generated, validated, reproducible, tested** |
 | `enduranceplan` content generator | **Builds & runs** |
-| SwiftUI app, watchOS, widgets (`Applications/`) | **Authored for Xcode 26** — compiled in Xcode, not in this environment |
+| SwiftUI iOS app (`Applications/iOS`) | **Compiles clean** (0 errors, 0 warnings) and **launches on the iOS 26.5 Simulator** |
+| App unit + UI tests (`Applications/iOSTests`, `iOSUITests`) | **6 tests passing** on Simulator |
+| watchOS app, widgets, App Intents | **Not yet built** — Release 2 (see `EXPANSION_ARCHITECTURE.md`) |
 
 The riskiest logic (DST/leap‑year date math, the 64‑notification budget, plan
 validation, unit conversion, progress, export round‑trips) lives in the
 Foundation‑only domain layer precisely so it can be tested without Xcode.
+
+Not yet verified: behaviour on a **physical iPhone**, persistence of completion
+and rescheduling **across relaunch**, and the Dynamic Type / VoiceOver / Dark
+Mode passes in `QA_CHECKLIST.md`. See `LIMITATIONS_AND_NEXT_STEPS.md`.
 
 ## Repository layout
 
@@ -43,7 +49,10 @@ ironmanapp/
       EnduranceTrainingPlans/ Bundled + generated plan JSON, loader
       enduranceplan/          Build-time plan generator (CLI)
     Tests/EnduranceDomainTests/
-  Applications/               SwiftUI app + watch + widgets (built by Xcode)
+  Applications/
+    iOS/                      SwiftUI app (watch + widgets arrive in Release 2)
+    iOSTests/  iOSUITests/    App-level unit and UI tests
+  docs/screenshots/           Simulator captures
   project.yml                 XcodeGen spec — assembles the Xcode targets
   DECISIONS.md  DATA_SCHEMA.md  EXPANSION_ARCHITECTURE.md  CAPABILITIES.md
   TRAINING_SOURCES.md  PRIVACY.md  QA_CHECKLIST.md  UX_SPEC.md  CHANGELOG.md

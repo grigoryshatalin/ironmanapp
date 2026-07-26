@@ -14,25 +14,37 @@ struct RootView: View {
                     NavigationStack {
                         TodayView()
                     }
-                    .tabItem { Label("Today", systemImage: Theme.availableSymbol("figure.mixed.cardio", fallback: "sun.max")) }
+                    .tabItem {
+                        Label("Today", systemImage: Theme.availableSymbol("figure.mixed.cardio", fallback: "sun.max"))
+                            .accessibilityIdentifier(A11y.Tab.today)
+                    }
                     .tag(AppTab.today)
 
                     NavigationStack {
                         PlanView()
                     }
-                    .tabItem { Label("Plan", systemImage: "calendar") }
+                    .tabItem {
+                        Label("Plan", systemImage: "calendar")
+                            .accessibilityIdentifier(A11y.Tab.plan)
+                    }
                     .tag(AppTab.plan)
 
                     NavigationStack {
                         ProgressDashboardView()
                     }
-                    .tabItem { Label("Progress", systemImage: Theme.availableSymbol("chart.xyaxis.line", fallback: "chart.bar")) }
+                    .tabItem {
+                        Label("Progress", systemImage: Theme.availableSymbol("chart.xyaxis.line", fallback: "chart.bar"))
+                            .accessibilityIdentifier(A11y.Tab.progress)
+                    }
                     .tag(AppTab.progress)
 
                     NavigationStack {
                         SettingsView()
                     }
-                    .tabItem { Label("Settings", systemImage: "gearshape") }
+                    .tabItem {
+                        Label("Settings", systemImage: "gearshape")
+                            .accessibilityIdentifier(A11y.Tab.settings)
+                    }
                     .tag(AppTab.settings)
                 }
             } else {

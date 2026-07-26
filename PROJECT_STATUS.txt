@@ -1,0 +1,457 @@
+===============================================================================
+ENDURANCE — PROJECT STATUS
+36-week full-distance triathlon training app for iPhone
+Status as of 2026-07-26
+===============================================================================
+
+-------------------------------------------------------------------------------
+1. BOTTOM LINE
+-------------------------------------------------------------------------------
+
+Release 1 is feature-complete and verified end to end on the Simulator, but is
+NOT signed off. One acceptance criterion remains: notification behaviour has
+never been exercised on a physical iPhone, and none is connected to this
+machine.
+
+What is now proven, by tests that can actually fail:
+  - Onboarding completes from a fresh install and generates all 382 sessions.
+  - Today shows the correct date and the correct sessions.
+  - Completing a workout survives terminate + relaunch.
+  - Rescheduling survives terminate + relaunch.
+  - Changing the plan anchor regenerates future workouts.
+  - The export writes and parses back.
+  - The app stays usable across the full accessibility and appearance matrix,
+    on the smallest and largest supported iPhones.
+
+What changed since the previous status: the app went from "compiles and
+launches" to "demonstrably works". The earlier UI tests could not fail for any
+product reason; they have been replaced. Six real defects were found and fixed
+in the process, the most serious being that onboarding collected the athlete's
+preferred training days and then ignored them, and that the Today screen was
+unusable at the largest Dynamic Type size.
+
+Full detail: RELEASE_1_VERIFICATION.md
+
+-------------------------------------------------------------------------------
+2. WHAT THE PRODUCT IS
+-------------------------------------------------------------------------------
+
+A native iPhone app that stores a complete 36-week full-distance triathlon
+training plan, maps it onto real calendar dates from either a start date or a
+race date, answers "what do I do today?", and sends calm local reminders.
+
+Design intent, from plan.txt:
+  - Feels like a first-party Apple app: quiet, legible, native, accessible.
+  - Calm, not gamified. No confetti, streak pressure, neon, or shame language.
+  - Safety over completion statistics. Never encourages stacking missed hard
+    sessions to protect a percentage.
+  - Offline and private by default. No account, no analytics, no data leaves
+    the device.
+  - Not medical or coaching advice; educational organiser only.
+
+Intended first user: a 20-year-old athlete training ~9 months for a first
+full-distance triathlon, with the goal of finishing safely, not racing fast.
+
+Working product name "Endurance" is isolated to two places (project.yml
+PRODUCT_NAME, and EnduranceDomain.productName) so a rename is cheap.
+
+
+-------------------------------------------------------------------------------
+3. VERIFICATION STATUS
+-------------------------------------------------------------------------------
+
+All of the following was run and observed on this machine, 2026-07-26, on
+Xcode 26.6 (build 17F113) with the iOS 26.5 SDK.
+
+  COMPONENT                          RESULT
+  ---------------------------------  ------------------------------------------
+  EnduranceDomain package            swift build: clean
+  Domain test suite                  swift test: 69 tests / 11 suites, all pass
+  36-week plan generation            swift run enduranceplan: valid, 0 warnings,
+                                     byte-reproducible (git clean after re-run)
+  iOS app compile                    xcodebuild build: 0 errors, 0 warnings
+  App test bundle (clean full run)   29 tests, all pass, 0 warnings
+    - app unit                       4
+    - UI acceptance                  7  (every section 31 behaviour)
+    - accessibility matrix           9
+    - screenshot capture             9  (13 images)
+  Device matrix                      iPhone 17, 17 Pro, 17e (small),
+                                     17 Pro Max (large) — all pass
+  SwiftData persistent store         Created successfully — no in-memory
+                                     fallback was triggered
+
+The 11 domain test suites:
+  - Schedule engine — dates, DST, leap years, conversion
+  - Preferred day layout  (new: the long-ride/long-run/rest-day transform)
+  - Plan validation
+  - Plan lookup
+  - Unit conversion & formatting
+  - Progress aggregation
+  - Notification planning — identifiers, cancellation, window, budget
+  - Adaptation & reschedule conflict rules
+  - Export / import round trips & deterministic ids
+  - Bundled 36-week plan
+  - Toolchain probe
+
+Two test-infrastructure findings, recorded because they change how results
+should be read:
+
+  1. WARNING COUNTS FROM INCREMENTAL BUILDS ARE NOT EVIDENCE. Intermediate runs
+     reported "0 warnings" while the UI test target actually carried 181
+     strict-concurrency warnings — XCUIElement's methods are @MainActor and the
+     test classes were not. Incremental builds were not recompiling that target,
+     so they never re-printed; they surfaced only when adding a file forced a
+     full recompile. Fixed by isolating the UI test classes to @MainActor. Read
+     build hygiene from a full `build-for-testing`.
+
+  2. THE SUITE WAS FRAGILE UNDER HOST CONTENTION. A confirmation run on a fourth
+     simulator failed two acceptance tests with XCUITest event-synthesis
+     timeouts (one took 236s against a normal 19s) while a second simulator was
+     running the app interactively. Both passed in isolation on the same device.
+     Cause was a test defect, not a product defect: the onboarding helper tapped
+     Continue five times waiting only for existence, and that button exists on
+     every step. It now waits for hittability. No product code changed.
+
+On the quality of the green: the previous UI tests were permissive — one passed
+if it found EITHER onboarding OR the Today tab, so it could not fail for any
+product reason. They have been deleted and replaced with tests that assert
+specific state and did, in fact, catch six real defects. The ~884
+"CoreData: error:" lines in test logs remain Core Data's normal first-run path
+probing, not app faults.
+
+
+-------------------------------------------------------------------------------
+4. REPOSITORY STRUCTURE
+-------------------------------------------------------------------------------
+
+  ironmanapp/
+    EndurancePackages/              Swift package — shared, testable core
+      Package.swift                 swift-tools 6.0, Swift 6 language mode
+      Sources/
+        EnduranceDomain/            Foundation ONLY. No SwiftUI/UIKit/HealthKit.
+          Core/                     Sport, Intensity, StressCategory,
+                                    WorkoutStatus, MeasurementSystem
+          Plan/                     TrainingPlanDefinition, WorkoutTemplate,
+                                    WorkoutStep, NutritionGuidance,
+                                    PlanGenerator, PlanGeneratorSessions
+          State/                    ScheduledWorkout, WorkoutCompletion,
+                                    PlanModification, WorkoutIdentity,
+                                    ScheduleConfiguration,
+                                    NotificationPreferences,
+                                    SharedTodaySnapshot
+          Scheduling/               ScheduleEngine
+          Services/                 PlanValidator, PlanCodec, UnitFormatter,
+                                    ProgressCalculator, NotificationPlanner,
+                                    AdaptationAdvisor, ExportService
+          Utilities/                UUIDv5
+        EnduranceTrainingPlans/     Bundled generated plan JSON + loader
+        enduranceplan/              Build-time plan generator (CLI)
+      Tests/EnduranceDomainTests/   69 Swift Testing tests
+
+    Applications/
+      iOS/                          SwiftUI app
+        App/                        EnduranceApp, AppEnvironment, AppConfig,
+                                    AppLog, DeepLink, RootView
+        DesignSystem/               Theme, Components, DisplayFormatter,
+                                    PreviewSupport
+        Persistence/                Models (SwiftData), WorkoutStore
+        Services/                   NotificationScheduler, SnapshotWriter
+        Features/                   Onboarding, Today, WorkoutDetail, Plan,
+                                    Progress, Settings
+        Info.plist, Endurance.entitlements, Assets.xcassets
+      iOSTests/                     App unit tests
+      iOSUITests/                   Acceptance, accessibility &
+                                    screenshot suites
+    Applications/Shared/            Accessibility identifiers (app + tests)
+    Tools/                          Icon generator, screenshot capture
+
+    docs/screenshots/               Simulator captures
+    project.yml                     XcodeGen spec (the .xcodeproj is generated
+                                    and git-ignored — project.yml is the source
+                                    of truth)
+    plan.txt                        The original 2,547-line product brief
+
+  Documentation: README.md, DECISIONS.md, DATA_SCHEMA.md, TRAINING_SOURCES.md,
+  EXPANSION_ARCHITECTURE.md, CAPABILITIES.md, PRIVACY.md, QA_CHECKLIST.md,
+  UX_SPEC.md, ICON_SPEC.md, CHANGELOG.md, LIMITATIONS_AND_NEXT_STEPS.md
+
+  Size: 70 Swift files.
+    Domain sources    ~2,874 lines
+    App layer         ~2,492 lines
+    Domain tests        ~881 lines
+
+
+-------------------------------------------------------------------------------
+5. ARCHITECTURE — THE KEY DECISION
+-------------------------------------------------------------------------------
+
+The load-bearing architectural choice is that EnduranceDomain is Foundation-only
+and depends on nothing Apple-UI-shaped. Consequences:
+
+  - The riskiest logic (DST and leap-year date math, the 64-notification budget,
+    plan validation, unit conversion, progress aggregation, export round trips)
+    is testable WITHOUT Xcode, on any Swift toolchain, in under a second.
+  - The same core can be consumed unchanged by the iOS app, the future watchOS
+    app, widgets, and App Intents. No core logic lives in the app target.
+  - Domain value types stay the single source of truth. The SwiftData layer
+    stores query columns (date, week, status) plus an encoded payload of the
+    domain struct, rather than duplicating every field — this avoids drift
+    between the persisted schema and the domain model.
+
+Views never touch ModelContext. All mutation goes through WorkoutStore, which
+keeps persistence, notifications, and the shared widget snapshot consistent.
+
+Layered identity (WorkoutIdentity) separates plan / template / scheduled /
+execution / external-provider IDs, so a workout survives rescheduling, HealthKit
+import, watch completion, and eventual Garmin/Strava sync without ever being
+identified by title+date.
+
+
+-------------------------------------------------------------------------------
+6. TRAINING PLAN CONTENT
+-------------------------------------------------------------------------------
+
+Generated deterministically by PlanGenerator, validated, and committed as JSON
+(~1.0 MB). Regeneration is byte-reproducible and a test asserts the committed
+file stays in sync with the generator.
+
+  schemaVersion 1
+  36 weeks / 252 days / 382 workouts
+
+  Foundation              weeks  1-4
+  Base 1                  weeks  5-8
+  Base 2                  weeks  9-12
+  Build 1                 weeks 13-16
+  Build 2                 weeks 17-20
+  Endurance specificity   weeks 21-24
+  Race-specific build     weeks 25-28
+  Peak                    weeks 29-33
+  Taper                   weeks 34-35
+  Race week               week  36
+
+Content tests assert: phases tile all 36 weeks; long runs never exceed ~2.5h
+(no full-marathon training run); every non-recovery week from base onward has a
+weekend brick; race week ends with a race-day session; preparation and fueling
+guidance attach only to long/brick/race sessions.
+
+Sourcing and the reasoning behind the periodisation are cited in
+TRAINING_SOURCES.md. Fueling and hydration are framed as configurable targets
+and practice recommendations, never as personalised medical nutrition advice.
+
+
+-------------------------------------------------------------------------------
+7. WHAT CHANGED THIS SESSION (commit 795b5ab)
+-------------------------------------------------------------------------------
+
+Branch: build/first-xcode-build   (branched from main at f508f03)
+
+Environment unblocking (the real blocker, and it was not what the docs claimed):
+  Xcode 26.6 was already installed at /Applications/Xcode.app. The problems were
+  that (a) xcode-select still pointed at CommandLineTools, (b) the Xcode license
+  had never been accepted, and (c) Xcode 26 ships WITHOUT iOS platform support,
+  requiring a one-time ~8 GB `xcodebuild -downloadPlatform iOS`. Until all three
+  were resolved there were zero usable build destinations, and `swift test`
+  failed with "no such module 'Testing'" because swift-testing resolves through
+  the Xcode toolchain, not CLT.
+
+Three code fixes — the complete set of first-build failures across ~2,500 lines:
+
+  1. NotificationScheduler.swift — Swift 6 strict concurrency.
+     Awaiting `sync` from the main actor sent a non-Sendable object across an
+     isolation boundary. The class is now @MainActor. But
+     UNUserNotificationCenterDelegate is NOT @MainActor and its parameters are
+     not Sendable, so isolating the class alone traded one error for four; the
+     two delegate witnesses are therefore `nonisolated` and hop to the main
+     actor themselves.
+
+  2. NotificationSettingsView.swift — SwiftUI API misuse.
+     `Section("Timing") { ... } footer: { ... }` is not a real initializer; a
+     string title and a footer are mutually exclusive. Replaced with the
+     explicit header:/footer: form.
+
+  3. Info.plist — missing standard bundle keys.
+     No CFBundleIdentifier, so the Simulator refused to install the app
+     ("Missing bundle ID"). XcodeGen injects these only under
+     GENERATE_INFOPLIST_FILE, which this target does not use. Added
+     CFBundleIdentifier, CFBundleExecutable, CFBundlePackageType,
+     CFBundleInfoDictionaryVersion, CFBundleDevelopmentRegion, and switched
+     CFBundleName to $(PRODUCT_NAME).
+
+Documentation corrected: README.md and LIMITATIONS_AND_NEXT_STEPS.md both
+asserted a headless environment with no Xcode and listed the six screens as
+unimplemented. Both were false. CHANGELOG.md gained a Stage 2b entry.
+
+
+-------------------------------------------------------------------------------
+8. GAPS AGAINST THE BRIEF
+-------------------------------------------------------------------------------
+
+Closed in the 2026-07-26 refinement pass:
+  accessibility identifiers (79), permissive UI tests, String Catalog +
+  localization of domain display names, haptics, app-icon artwork, plan
+  filtering, optional interval check-off, screenshots, and the preferred
+  long-ride / long-run / rest-day transform.
+
+Still open:
+
+  INTERVAL CHECK-OFF IS SESSION-SCOPED. Ticks live in view state and reset when
+    you leave the screen. Persisting them requires a schema bump and migration
+    fixtures (section 28.22), so it was not half-shipped. It is optional and
+    nothing depends on it.
+
+  TRAINING ZONES ARE RPE-ONLY. Heart-rate, power, pace and swim-pace zone
+    editing is a later update. The app is fully usable without sensors.
+
+  LOCALIZATION SHIPS ENGLISH ONLY. Infrastructure is in place; adding a language
+    is now a translation task rather than a code change.
+
+  WEEKLY PROGRESS IS HIDDEN ON TODAY AT ACCESSIBILITY TEXT SIZES. Deliberate —
+    the header otherwise filled the screen and pushed every session off it.
+
+
+-------------------------------------------------------------------------------
+9. WHAT IS NOT VERIFIED
+-------------------------------------------------------------------------------
+
+Against the brief's section 31 "definition of done", these remain open:
+
+  [ ] Physical-device workflow is valid          (no device connected)
+  [ ] Notifications are not duplicated           (unit-tested; not observed
+  [ ] Completed workouts have reminders cancelled on hardware)
+  [ ] Notification tap deep-links correctly      (parsing unit-tested only)
+
+Plus the manual-only QA rows automation cannot reach: Airplane Mode, device
+reboot, a live time-zone change, and a real DST boundary.
+
+Now verified (previously open):
+  [x] Builds without errors; no unexplained warnings
+  [x] Launches on supported iPhone simulators (4 models, small and large)
+  [x] Onboarding produces a usable schedule      (382 sessions asserted)
+  [x] Today displays the correct date and sessions
+  [x] Completion persists after relaunch
+  [x] Rescheduling persists after relaunch
+  [x] Date changes regenerate future scheduling
+  [x] Light and Dark Mode both look intentional
+  [x] Large Dynamic Type remains usable          (a real defect was found here)
+  [x] VoiceOver labels are meaningful
+  [x] Exported data can be re-imported or parsed (round-trips in-app)
+  [x] Works offline; no health data leaves the device
+  [x] Progress calculations are tested
+
+
+-------------------------------------------------------------------------------
+10. TOOLCHAIN AND HOW TO BUILD
+-------------------------------------------------------------------------------
+
+Verified working configuration:
+  macOS (Darwin 25.5.0), Xcode 26.6 / build 17F113
+  iOS 26.5 SDK, iOS 26.5 Simulator runtime installed
+  Swift 6.3.1, XcodeGen 2.46.0
+  Deployment target iOS 18.0, Swift 6 language mode, strict concurrency complete
+
+One-time machine setup (only needed on a fresh Mac):
+  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+  sudo xcodebuild -license accept
+  sudo xcodebuild -runFirstLaunch
+  xcodebuild -downloadPlatform iOS      # ~8 GB, Xcode 26 has no iOS support
+  brew install xcodegen                 #         built in
+
+Order matters: xcode-select must come first, because `xcodebuild` does not exist
+in the CommandLineTools toolchain.
+
+Domain tests only (fast, no Simulator):
+  cd EndurancePackages && swift test
+
+Regenerate the 36-week plan:
+  cd EndurancePackages && swift run enduranceplan
+
+Full build and test:
+  xcodegen generate
+  xcodebuild test -project Endurance.xcodeproj -scheme Endurance \
+    -destination 'platform=iOS Simulator,name=iPhone 17'
+
+Run it and look at it:
+  open -a Simulator
+  xcrun simctl install booted <DerivedData>/Build/Products/Debug-iphonesimulator/Endurance.app
+  xcrun simctl launch booted com.example.endurance
+  xcrun simctl io booted screenshot shot.png
+
+Physical device: open Endurance.xcodeproj, set a development team and a unique
+bundle identifier under Signing & Capabilities, then run. A free Apple ID works
+but the build expires after ~7 days. TestFlight needs the paid Apple Developer
+Program. See README.md.
+
+
+-------------------------------------------------------------------------------
+11. NEXT STEPS, IN ORDER
+-------------------------------------------------------------------------------
+
+  1. Verify notifications on a physical iPhone. This is the only item blocking
+     Release 1 sign-off: permission flow, delivery, non-duplication,
+     cancellation after completion, regeneration after a move or date change,
+     and tap-through deep links.
+
+  2. Run the manual-only QA rows: Airplane Mode, device reboot, a live
+     time-zone change, and a real DST boundary.
+
+  3. Decide whether interval check-off should persist. If so, bump the schema
+     and add migration fixtures first (section 28.22).
+
+  4. Then Release 2 — HealthKit, watchOS, WorkoutKit, Live Activities, Widgets,
+     App Intents. RELEASE_1_VERIFICATION.md section 7 confirms the current
+     schema supports every planned release without a destructive rewrite.
+
+
+-------------------------------------------------------------------------------
+12. RELEASE ROADMAP
+-------------------------------------------------------------------------------
+
+  Release 1  Core training MVP                    <- current, ~90% built,
+                                                     verification just starting
+  Release 2  Apple ecosystem: HealthKit import/export, Apple Watch companion,
+             WorkoutKit, Live Activities, Widgets, Siri and App Intents
+  Release 3  Sync and intelligence: iCloud/CloudKit, WeatherKit advisories,
+             equipment mileage, race packing checklist, course profiles,
+             adaptive weekly recommendations
+  Release 4  Coaching and external platforms: coach-authored plans, plan
+             sharing, Garmin and Strava interoperability, conflict resolution,
+             full localization
+
+Architectural foundations for all four already exist — layered WorkoutIdentity,
+App Group entitlement, SharedTodaySnapshot, separated packages, service
+protocols. EXPANSION_ARCHITECTURE.md documents how each later feature attaches.
+Every release must preserve earlier data and ship migrations first; the brief
+forbids solving a migration problem by asking users to reinstall.
+
+
+-------------------------------------------------------------------------------
+13. RISKS AND JUDGEMENT CALLS
+-------------------------------------------------------------------------------
+
+  The app has never been used. It compiles and launches, which is a real
+  milestone but a low bar. The gap between "renders onboarding" and "correctly
+  schedules 382 workouts across DST boundaries and cancels the right
+  notifications" is entirely unmeasured at the UI level. The domain logic
+  underneath it is well tested, which is the reason for optimism, but the
+  wiring between them is not.
+
+  Localization debt is compounding. Every screen added before the String
+  Catalog exists makes the eventual migration larger. Section 28.18 anticipated
+  exactly this and was not followed.
+
+  Onboarding currently asks for preferred long-session and rest days and then
+  ignores them. A user would experience this as a bug.
+
+  Notification behaviour is the most complex part of the product (stable IDs, a
+  rolling window under a hard 64-request system cap, cancellation on
+  completion, regeneration on date change, deep links). It is thoroughly
+  unit-tested as pure logic and completely unobserved in practice.
+
+  The 36-week plan is a single generic finish-goal plan. It is personalised only
+  through scheduling. Onboarding's capability questions feed warnings and future
+  adaptation but deliberately do not silently rewrite the plan.
+
+===============================================================================
+End of status. Sources: plan.txt, repository state at commit 795b5ab, and
+build/test runs performed 2026-07-25.
+===============================================================================

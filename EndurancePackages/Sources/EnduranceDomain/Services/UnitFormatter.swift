@@ -56,7 +56,10 @@ public struct UnitFormatter: Sendable {
     ) -> String {
         let unit = displayUnit(for: sport, system: system)
         let value = convertedValue(meters: meters, to: unit)
-        let fractionDigits = (unit == .meters || unit == .yards) ? 0 : 2
+        // One decimal for km/miles. Two implied a precision the plan does not
+        // have — a planned "30.35 km" ride reads as a measurement rather than
+        // the round target it actually is. Pool distances stay whole units.
+        let fractionDigits = (unit == .meters || unit == .yards) ? 0 : 1
         let nf = NumberFormatter()
         nf.locale = locale
         nf.numberStyle = .decimal

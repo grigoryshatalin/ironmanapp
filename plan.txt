@@ -1,2547 +1,1355 @@
-You are a senior iOS engineer, product designer, endurance-sports product manager, data architect, QA engineer, and technical writer. Build a production-quality, native iPhone application for managing a complete 36-week full-distance triathlon training plan.
+Begin Release 2 now.
+
+Release 1 has completed simulator-based end-to-end verification. Do not repeat
+or rebuild Release 1. Preserve all existing functionality, persisted data,
+tests, UI behavior, architecture, and the complete 36-week plan.
+
+One Release 1 hardware-verification task remains open: local notification
+delivery, cancellation, non-duplication, regeneration, and deep linking must
+still be verified on a physical iPhone. Do not block Release 2 implementation
+on the absence of a connected device, but preserve this as a mandatory release
+gate before public distribution.
+
+The objective of Release 2 is to produce a complete Apple ecosystem integration,
+not a collection of placeholder screens.
+
+Implement all of the following:
+
+1. Full HealthKit import and export.
+2. Native Apple Watch companion application.
+3. WorkoutKit conversion and scheduling.
+4. Active workout recording.
+5. Live Activities for active workouts.
+6. Home Screen and Lock Screen widgets.
+7. Siri, Shortcuts, and App Intents.
+8. Required shared architecture, App Groups, entitlements, migrations, tests,
+   settings, permission flows, and documentation.
+
+Do not stop after generating architecture documents or protocol stubs.
+Implement working user-facing functionality and verify everything that can be
+verified without physical hardware.
+
+Use only current official Apple documentation as the source of truth. Before
+writing production code, review the current documentation for:
+
+- HealthKit
+- HKWorkout
+- HKWorkoutSession
+- HKLiveWorkoutBuilder
+- Multidevice workout mirroring
+- WorkoutKit
+- WorkoutScheduler
+- WidgetKit
+- ActivityKit
+- App Intents
+- App Shortcuts
+- WatchConnectivity where still appropriate
+- App Groups
+- Privacy and HealthKit App Review requirements
+
+When this specification conflicts with current Apple APIs, follow the current
+official API and document the change.
+
+=======================================================================
+A. RELEASE SAFETY AND BRANCHING
+=======================================================================
+
+Create a new branch:
+
+    release/2-apple-ecosystem
+
+Before changing production code:
+
+1. Run the complete existing test suite.
+2. Record the baseline test count and result.
+3. Generate and archive the current screenshots.
+4. Back up or fixture the current Release 1 SwiftData schema.
+5. Create migration fixtures containing:
+   - A fresh Release 1 store.
+   - A completed workout.
+   - A rescheduled workout.
+   - User settings.
+   - Training history.
+6. Confirm that the Release 2 build can migrate Release 1 data without requiring
+   deletion or reinstallation.
+
+Do not change stable domain identifiers.
+
+Do not replace WorkoutIdentity.
+
+Do not identify workouts by title and date.
+
+Do not let HealthKit UUIDs, WorkoutKit identifiers, or watch session identifiers
+become the primary local identity.
+
+Every existing Release 1 test must continue passing throughout Release 2.
+
+=======================================================================
+B. TARGET AND MODULE STRUCTURE
+=======================================================================
+
+Extend the current repository using reusable targets and packages.
+
+Required targets:
+
+- Endurance iOS application
+- Endurance watchOS application
+- Endurance Widgets extension
+- Live Activity support through the widget extension where appropriate
+- Existing app unit tests
+- Existing UI tests
+- New HealthKit integration tests
+- New watchOS tests where supported
+- New widget and App Intent tests where practical
 
-The application should feel like an official Apple application: quiet, polished, highly legible, native, responsive, accessible, and intentionally designed. It must not look like a generic fitness dashboard, a React web page inside an app, a gaming interface, or an AI-generated collection of colorful cards.
+Required shared modules or equivalent boundaries:
 
-The working product name is **Endurance**. Keep the name isolated in configuration so it can be renamed later.
+- EnduranceDomain
+- EndurancePersistence
+- EnduranceHealth
+- EnduranceWorkoutKit
+- EnduranceActiveWorkout
+- EnduranceWatchSync
+- EnduranceWidgets
+- EnduranceIntents
+- EnduranceTrainingPlans
 
-## 1. Primary objective
+The domain layer must remain independent of SwiftUI, HealthKit, WorkoutKit,
+WidgetKit, and ActivityKit.
 
-Create a personal iPhone application that:
+Framework-specific types must not leak into the core domain model.
 
-* Stores a complete 36-week full-distance triathlon training plan.
-* Maps training-plan days to actual calendar dates based on a configurable start date or race date.
-* Shows exactly what the athlete must do today.
-* Sends useful local reminders for workouts, fueling, recovery, preparation, and weekly review.
-* Lets the athlete complete, skip, reschedule, shorten, replace, or annotate workouts.
-* Tracks progress without encouraging unsafe catch-up behavior.
-* Works offline.
-* Preserves user data between launches.
-* Can be installed on a physical iPhone.
-* Can later be distributed through TestFlight.
-* Looks and behaves like a first-party Apple app.
-
-The app is initially intended for one 20-year-old athlete training for a first full-distance triathlon over approximately nine months. The default objective is to finish safely and consistently, not to reach an elite finishing time.
-
-Do not present the app as medical care or as a replacement for a qualified coach or clinician.
-
-## 2. Required research before implementation
-
-Before writing production code, inspect the latest official documentation available at implementation time.
-
-Prioritize primary sources:
-
-* Apple Human Interface Guidelines.
-* Apple SwiftUI documentation.
-* Apple UserNotifications documentation.
-* Apple HealthKit documentation.
-* Apple Charts documentation.
-* Apple accessibility documentation.
-* Apple App Store Review Guidelines.
-* Apple TestFlight documentation.
-* Relevant endurance-training guidance from recognized governing bodies or reputable coaching organizations.
-
-Do not copy proprietary designs pixel for pixel. Apply Apple’s design principles and native conventions.
-
-Document important technical decisions in `DECISIONS.md`, including:
-
-* Why SwiftUI was selected.
-* Supported iOS version.
-* Persistence approach.
-* Notification strategy.
-* HealthKit strategy.
-* Calendar-date calculation.
-* Training-plan schema.
-* Accessibility strategy.
-* Privacy approach.
-* Testing approach.
-
-When official documentation conflicts with assumptions in this prompt, follow current official documentation and record the change.
-
-## 3. Technical platform
-
-Build the application as a native iOS app using:
-
-* Swift.
-* SwiftUI.
-* Apple-native navigation.
-* SwiftData, unless compatibility or migration requirements justify Core Data.
-* UserNotifications for local reminders.
-* Swift Charts for charts.
-* HealthKit behind a clearly separated optional integration layer.
-* XCTest and Swift Testing where appropriate.
-* Xcode project configuration suitable for a physical iPhone and TestFlight.
-
-Target the newest stable iOS SDK available, while choosing a sensible minimum deployment target. Do not require beta SDKs.
-
-Use structured concurrency with `async` and `await` where appropriate.
-
-Avoid third-party dependencies unless they solve a major problem that cannot reasonably be addressed with Apple frameworks. Explain every third-party dependency before adding it.
-
-Do not use:
-
-* React Native.
-* Expo.
-* Flutter.
-* Ionic.
-* Electron.
-* Embedded web views for the primary interface.
-* Custom-drawn imitations of native controls when SwiftUI already provides the correct control.
-
-## 4. Product principles
-
-The product must follow these principles:
-
-### Native first
-
-Use standard SwiftUI components, navigation behavior, sheets, menus, pickers, toggles, lists, forms, alerts, confirmation dialogs, swipe actions, context menus, toolbars, and system transitions.
-
-### Calm, not gamified
-
-Avoid:
-
-* Confetti.
-* Constant streak pressure.
-* Neon gradients.
-* Excessive rings.
-* Giant motivational slogans.
-* Punishment language.
-* Red warning states for ordinary missed workouts.
-* Arbitrary experience points.
-* Fake social competition.
-
-Progress should feel informative rather than judgmental.
-
-### Today is the center
-
-The most important question is:
-
-“What should I do today?”
-
-The Today screen must answer that within one second.
-
-### Safety over completion statistics
-
-Never tell the athlete to stack missed hard workouts or complete extra volume merely to preserve a completion rate.
-
-### Progressive disclosure
-
-Show essential information first. Let users expand for intervals, technique cues, fueling instructions, and notes.
-
-### Offline reliability
-
-The plan, completion history, settings, and notifications must continue to work without an account or internet connection.
-
-### Privacy
-
-Keep personal fitness information on-device by default. Do not add analytics, advertising, tracking, or external accounts to the first version.
-
-## 5. Visual direction
-
-Create an understated Apple-style interface.
-
-### Typography
-
-Use San Francisco through SwiftUI’s system text styles. Never bundle or hard-code a substitute font.
-
-Use semantic styles such as:
-
-* `.largeTitle`
-* `.title`
-* `.title2`
-* `.headline`
-* `.body`
-* `.callout`
-* `.subheadline`
-* `.footnote`
-* `.caption`
-
-Support Dynamic Type without truncating critical workout information.
-
-Avoid excessive bold text. Use hierarchy, spacing, grouping, and alignment before relying on font weight.
-
-### Color
-
-Use semantic system colors so the app automatically supports Light Mode, Dark Mode, increased contrast, and accessibility settings.
-
-Suggested restrained sport accents:
-
-* Swim: system cyan or blue.
-* Bike: system orange.
-* Run: system green.
-* Strength: system indigo.
-* Recovery: secondary or purple.
-* Race: primary accent.
-
-These colors must remain secondary to the content. Do not color entire screens by sport.
-
-Never rely on color alone to communicate status.
-
-### Symbols
-
-Use SF Symbols for interface icons.
-
-Suggested concepts:
-
-* Today: `sun.max` or `figure.mixed.cardio`.
-* Plan: `calendar`.
-* Progress: `chart.xyaxis.line`.
-* Settings: `gearshape`.
-* Swim: a suitable swimming symbol available in the target SDK.
-* Bike: `bicycle`.
-* Run: `figure.run`.
-* Strength: `dumbbell`.
-* Recovery: `bed.double` or a suitable recovery symbol.
-* Completed: `checkmark.circle.fill`.
-* Skipped: `minus.circle`.
-* Rescheduled: `arrow.right.circle`.
-* Notes: `note.text`.
-* Fuel: `fork.knife` or another suitable nutrition symbol.
-* Notification: `bell`.
-
-Verify symbol availability for the deployment target and provide graceful fallbacks.
-
-### Spacing and layout
-
-Use a consistent spacing system based primarily on values such as 4, 8, 12, 16, 20, 24, and 32 points.
-
-Respect safe areas.
-
-Use native grouped backgrounds and section spacing.
-
-Avoid turning every item into a floating rounded rectangle. Native lists and grouped sections should do most of the structural work.
-
-Use cards only for information that genuinely benefits from separation, such as the next workout or weekly summary.
-
-### Materials and depth
-
-Use blur and material sparingly. Prefer system navigation bars, sheets, tab bars, grouped backgrounds, and separators.
-
-Avoid large drop shadows. When depth is needed, use subtle native presentation and material behavior.
-
-### Motion and haptics
-
-Use subtle native animation for:
-
-* Completing a workout.
-* Expanding workout details.
-* Updating progress.
-* Switching a workout status.
-
-Respect Reduce Motion.
-
-Use haptics only for meaningful confirmation, such as completing or rescheduling a workout.
-
-Do not add decorative continuous animation.
-
-## 6. Navigation architecture
-
-Use a native tab bar with no more than four primary tabs:
-
-1. Today
-2. Plan
-3. Progress
-4. Settings
-
-Each tab must use its own `NavigationStack`.
-
-Use concise tab labels and SF Symbols.
-
-The primary navigation structure should be shallow and predictable.
-
-Expected hierarchy:
-
-* Today
-
-  * Workout Detail
-  * Completion Sheet
-  * Reschedule Sheet
-* Plan
-
-  * Week Detail
-  * Day Detail
-  * Workout Detail
-* Progress
-
-  * Metric Detail
-  * Training History
-* Settings
-
-  * Plan Setup
-  * Notifications
-  * Training Zones
-  * Health Access
-  * Data Management
-  * About
-
-Support state restoration where practical.
-
-## 7. Onboarding
-
-Create a short native onboarding flow shown on first launch.
-
-Do not create a marketing carousel with excessive illustrations.
-
-### Step 1: Purpose
-
-Explain that the app organizes a 36-week full-distance triathlon plan and sends reminders.
-
-### Step 2: Schedule
-
-Let the user choose either:
-
-* Training start date.
-* Race date.
-
-The app must derive the other date based on the exact plan duration.
-
-Show the calculated date immediately.
-
-### Step 3: Weekly structure
-
-Let the user choose:
-
-* Preferred long-bike day.
-* Preferred long-run day.
-* Preferred rest day.
-* Default weekday workout time.
-* Default weekend workout time.
-
-Default weekly structure:
-
-* Monday: recovery and technique.
-* Tuesday: quality bike and optional strength.
-* Wednesday: swim endurance and easy run.
-* Thursday: quality run and optional strength.
-* Friday: technique swim or recovery.
-* Saturday: long bike and brick run.
-* Sunday: long run and optional recovery swim.
-
-The stored plan must remain adaptable if the user chooses different long-session days.
-
-### Step 4: Current capability
-
-Collect optional starting information:
-
-* Comfortable continuous swim distance.
-* Longest recent bike duration or distance.
-* Longest recent run duration or distance.
-* Typical weekly training hours.
-* Access to a pool.
-* Access to open water.
-* Access to an indoor trainer.
-* Strength-training access.
-
-Use these values for warnings and future adaptation, but do not silently rewrite the entire plan without explaining changes.
-
-### Step 5: Notifications
-
-Explain why reminders are useful before requesting permission.
-
-Let the user enable categories individually:
-
-* Workout reminders.
-* Preparation reminders.
-* Fueling reminders.
-* Recovery reminders.
-* Weekly review.
-
-Request system notification permission only after the user elects to enable at least one category.
-
-### Step 6: Safety acknowledgment
-
-Present a brief, calm statement:
-
-* Training for a full-distance triathlon places substantial stress on the body.
-* The athlete should seek professional guidance when appropriate.
-* Pain, illness, dizziness, chest symptoms, or unusual fatigue should not be ignored.
-* The app does not provide medical diagnosis.
-
-Do not use this acknowledgment to remove safety features elsewhere.
-
-## 8. Today screen
-
-The Today screen is the most important surface.
-
-### Header
-
-Display:
-
-* Current date.
-* Training week and day.
-* Current phase.
-* A compact progress indicator for the current week.
-
-Example:
-
-“Saturday, August 15”
-“Week 4 of 36 · Base”
-
-### Daily status
-
-Show one calm status summary:
-
-* Ready for today.
-* Recovery day.
-* All sessions complete.
-* One session remains.
-* Schedule adjusted.
-* Race week.
-
-Do not use shame-based language.
-
-### Workout list
-
-Display today’s sessions in chronological order.
-
-Each row or section should contain:
-
-* Sport symbol.
-* Workout title.
-* Planned start time.
-* Duration.
-* Distance when applicable.
-* Intensity or zone.
-* Current status.
-* A one-line objective.
-
-Tapping opens a detailed native screen.
-
-Possible statuses:
-
-* Planned.
-* In progress.
-* Completed.
-* Partially completed.
-* Skipped.
-* Rescheduled.
-* Replaced.
-
-### Daily supporting sections
-
-Include, when relevant:
-
-* Fueling target.
-* Hydration target.
-* Equipment preparation.
-* Mobility or recovery.
-* Coach note.
-* Athlete note.
-
-Use progressive disclosure. Do not overwhelm the default screen.
-
-### Primary interactions
-
-Support:
-
-* Mark complete.
-* Log actual duration.
-* Log actual distance.
-* Log perceived exertion.
-* Add a note.
-* Skip.
-* Reschedule.
-* Reduce session.
-* Replace with recovery.
-* Undo recent status changes.
-
-Completing a workout must cancel its pending workout reminders.
-
-## 9. Workout detail screen
-
-Each workout detail screen should include:
-
-* Workout title.
-* Sport.
-* Planned date and time.
-* Estimated duration.
-* Planned distance.
-* Intensity zone.
-* Session purpose.
-* Warm-up.
-* Main set.
-* Cooldown.
-* Technique cues.
-* Fueling instructions.
-* Hydration instructions.
-* Required gear.
-* Safety notes.
-* Completion controls.
-* Athlete notes.
-* Modification history.
-
-For interval workouts, use a readable structured layout rather than a wall of text.
-
-Example:
-
-Warm-up
-10 min easy
-
-Main set
-4 × 6 min Zone 3
-3 min easy between repetitions
-
-Cooldown
-10 min easy
-
-Allow interval groups to be checked off, but keep this optional.
-
-## 10. Plan screen
-
-The Plan screen must make 36 weeks understandable without presenting 270 days as an endless text file.
-
-### Default plan view
-
-Show weeks grouped by phase:
-
-* Foundation.
-* Base.
-* Build 1.
-* Build 2.
-* Race-specific.
-* Peak.
-* Taper.
-* Race week.
-
-Each week row should show:
-
-* Week number.
-* Date range.
-* Planned hours.
-* Recovery/build designation.
-* Key long workout.
-* Completion summary for past weeks.
-
-### Week detail
-
-Show:
-
-* Week objective.
-* Planned total time.
-* Planned sport distribution.
-* Each day and its workouts.
-* Key focus.
-* Recovery guidance.
-* Optional coach note.
-
-### Calendar support
-
-Add a calendar-oriented view only if it remains native and useful. Do not build a complex custom calendar before the week-based plan is excellent.
-
-### Search and filtering
-
-Support filtering by:
-
-* Swim.
-* Bike.
-* Run.
-* Strength.
-* Recovery.
-* Brick.
-* Race or simulation.
-* Completed.
-* Missed.
-* Modified.
-
-Search is optional for the first MVP but the architecture should not prevent it.
-
-## 11. Progress screen
-
-Use Apple Charts and restrained summaries.
-
-Show:
-
-* This week’s planned versus completed duration.
-* Weekly duration trend.
-* Swim distance trend.
-* Bike duration or distance trend.
-* Run duration or distance trend.
-* Completion by sport.
-* Longest completed workout by sport.
-* Recent perceived exertion.
-* Recent fatigue or readiness entries.
-* Consistency across the last four weeks.
-
-Do not use one combined chart with incompatible units.
-
-Provide separate charts or a clear unit selector.
-
-Use accessible chart descriptions.
-
-Do not imply that higher training volume is always better.
-
-Highlight recovery weeks appropriately.
-
-## 12. Settings
-
-Implement native grouped settings.
-
-### Plan
-
-* Start date.
-* Race date.
-* Race name.
-* Race location.
-* Long-session days.
-* Rest day.
-* Units.
-* Recalculate schedule.
-
-Changing dates must:
-
-1. Explain what will change.
-2. Preserve completion history.
-3. Recalculate future planned dates.
-4. Cancel outdated notifications.
-5. Schedule correct new notifications.
-6. Avoid silently moving already completed workouts.
-
-### Units
-
-Support:
-
-* Miles and yards.
-* Kilometers and meters.
-* Mixed triathlon convention.
-
-Store normalized internal units and format for display.
-
-### Notifications
-
-Per-category toggles and times:
-
-* Evening-before preparation reminder.
-* Workout reminder.
-* Optional second reminder.
-* Long-session fueling reminder.
-* Recovery reminder.
-* Weekly review.
-
-Show notification authorization status.
-
-Provide a button to open the system Settings app when permission has been denied.
-
-### Training zones
-
-Support configurable:
-
-* Heart-rate zones.
-* Cycling power zones.
-* Running pace zones.
-* Swim pace ranges.
-* Perceived exertion fallback.
-
-The app must remain useful without sensors or formal test results.
-
-### Health
-
-Optional HealthKit integration:
-
-* Read completed workouts.
-* Write completed workouts only with explicit permission.
-* Read heart rate or relevant workout data only when needed.
-* Make all requested permissions understandable.
-* Degrade gracefully when Health access is denied.
-
-Do not request every HealthKit permission at once.
-
-HealthKit may be implemented after the core MVP, but its architecture must be planned.
-
-### Data management
-
-Provide:
-
-* Export plan.
-* Export history.
-* Import plan.
-* Reset completion history.
-* Reset application.
-* Delete all local data.
-
-Destructive actions require native confirmation.
-
-Export should use a human-readable format such as JSON and optionally CSV for history.
-
-## 13. Notification behavior
-
-Use local notifications as the default. The core app must not require a notification server.
-
-Notification categories:
-
-### Preparation
-
-Example:
-
-“Prepare for tomorrow’s long ride”
-“Charge your bike computer and prepare bottles.”
-
-### Workout
-
-Example:
-
-“90-minute endurance ride”
-“Zone 2 · Keep the effort controlled.”
-
-### Fueling
-
-Example:
-
-“Fuel the long session”
-“Bring enough carbohydrates and fluids for the planned duration.”
-
-### Recovery
-
-Example:
-
-“Recovery check”
-“Log soreness and prepare for tomorrow.”
-
-### Weekly review
-
-Example:
-
-“Review Week 8”
-“Check completed training and preview next week.”
-
-Notification requirements:
-
-* Use stable identifiers tied to workout IDs.
-* Avoid duplicate scheduling.
-* Cancel obsolete notifications.
-* Cancel workout reminders when the workout is completed.
-* Reschedule reminders after a date or time change.
-* Deep-link notification taps to the relevant workout or review screen.
-* Respect the user’s selected categories.
-* Respect notification permission state.
-* Do not request critical alerts.
-* Do not send manipulative messages.
-* Do not punish skipped sessions.
-* Avoid sending multiple notifications at nearly the same time.
-* Limit scheduling to a sensible upcoming window if platform constraints make scheduling the entire 36 weeks undesirable.
-* Refresh the scheduled window whenever the app launches, enters the foreground, or the plan changes.
-* Include unit tests for notification generation and cancellation logic.
-
-## 14. Adaptation and missed-workout rules
-
-The first version does not need an AI coach. It does need safe deterministic rules.
-
-When a workout is missed:
-
-* Do not automatically move it.
-* Do not automatically stack it with another hard workout.
-* Ask the athlete what to do.
-* Offer skip, move, shorten, or replace with recovery.
-* Warn when a move creates consecutive high-stress sessions.
-* Prefer preserving long-term consistency over preserving one workout.
-
-Define workout stress categories:
-
-* Recovery.
-* Easy.
-* Moderate.
-* Hard.
-* Long.
-* Race-specific.
-
-Define conflict rules, such as:
-
-* Avoid consecutive hard runs.
-* Avoid moving a long run directly after another demanding run.
-* Avoid placing maximal bike intervals immediately before the longest ride.
-* Avoid restoring missed volume during a recovery week without explicit action.
-* Never prescribe training through reported pain or illness.
-
-When the user reports illness or injury symptoms, provide a conservative prompt encouraging rest and appropriate professional advice. Do not diagnose.
-
-## 15. Training-plan data model
-
-The training plan must not exist as one unstructured text blob.
-
-Use a versioned, validated, human-readable source format, preferably JSON.
-
-Suggested entities:
-
-### TrainingPlan
-
-* `id`
-* `schemaVersion`
-* `name`
-* `description`
-* `durationWeeks`
-* `defaultStartDate`
-* `phases`
-* `weeks`
-* `metadata`
-
-### TrainingPhase
-
-* `id`
-* `name`
-* `startWeek`
-* `endWeek`
-* `objective`
-* `defaultLoadCategory`
-
-### TrainingWeek
-
-* `id`
-* `weekNumber`
-* `phaseID`
-* `title`
-* `objective`
-* `loadCategory`
-* `plannedMinutes`
-* `days`
-* `coachNote`
-
-### TrainingDay
-
-* `id`
-* `dayIndex`
-* `weekdayOffset`
-* `title`
-* `objective`
-* `workouts`
-* `nutrition`
-* `recovery`
-* `notes`
-
-### WorkoutTemplate
-
-* `id`
-* `sport`
-* `title`
-* `objective`
-* `plannedDurationMinutes`
-* `plannedDistanceMeters`
-* `intensity`
-* `stressCategory`
-* `scheduledLocalTime`
-* `warmup`
-* `mainSet`
-* `cooldown`
-* `techniqueCues`
-* `fueling`
-* `hydration`
-* `gear`
-* `safetyNotes`
-* `isBrick`
-* `brickGroupID`
-* `optional`
-
-### ScheduledWorkout
-
-Separate immutable plan content from mutable user state.
-
-Include:
-
-* `id`
-* `templateID`
-* `originalDate`
-* `scheduledDate`
-* `plannedStartTime`
-* `status`
-* `completion`
-* `modifications`
-* `notificationIDs`
-
-### WorkoutCompletion
-
-* `completedAt`
-* `actualDurationMinutes`
-* `actualDistanceMeters`
-* `averageHeartRate`
-* `averagePower`
-* `perceivedExertion`
-* `fatigue`
-* `soreness`
-* `notes`
-* `source`
-
-### PlanModification
-
-* `type`
-* `createdAt`
-* `oldDate`
-* `newDate`
-* `oldDuration`
-* `newDuration`
-* `reason`
-
-### AppSettings
-
-* Units.
-* Dates.
-* Notification choices.
-* Default workout times.
-* Preferred training days.
-* Health permissions state.
-* Accessibility preferences when app-specific.
-
-Use stable UUIDs or deterministic identifiers.
-
-Create schema validation and migration support. Reject malformed plans with actionable errors rather than crashing.
-
-## 16. Training content
-
-Create a complete 36-week training-plan seed file.
-
-The plan must include every day and every session, but avoid pretending there is one universally correct plan.
-
-Organize it into progressive phases with planned recovery weeks.
-
-A reasonable initial structure to research and validate:
-
-* Weeks 1–4: Foundation and routine.
-* Weeks 5–8: Base 1.
-* Weeks 9–12: Base 2.
-* Weeks 13–16: Build 1.
-* Weeks 17–20: Build 2.
-* Weeks 21–24: Endurance specificity.
-* Weeks 25–28: Race-specific build.
-* Weeks 29–32: Peak-specific work.
-* Week 33: Final major simulation or peak.
-* Weeks 34–35: Taper.
-* Week 36: Race week.
-
-Do not blindly follow these ranges if current research supports a better structure.
-
-Plan requirements:
-
-* Swimming, cycling, running, strength, mobility, recovery, brick sessions, and race preparation.
-* Gradual progression.
-* Recurring recovery weeks.
-* Swim technique emphasis early.
-* Open-water skills when appropriate.
-* Bike handling and equipment practice.
-* Progressive bricks.
-* Long-session fueling practice.
-* Transition practice.
-* Race-equipment rehearsals.
-* Reduced strength load during the most specific phase.
-* Taper that lowers volume while preserving some intensity.
-* No full marathon training run.
-* No implication that the athlete must complete the plan despite injury or illness.
-
-Every workout must have enough detail to be actionable.
-
-Do not create unsupported exact claims about nutrition or training. Cite the research used to design the plan in a separate `TRAINING_SOURCES.md`.
-
-The app itself should phrase fueling guidance as configurable targets and practice recommendations, not personalized medical nutrition advice.
-
-## 17. Date engine
-
-Implement a deterministic date engine.
-
-Support either:
-
-* Start date as the source of truth.
-* Race date as the source of truth.
-
-Calculate all workout dates using `Calendar` and date components, not raw seconds, to avoid daylight-saving errors.
-
-Requirements:
-
-* Use the user’s current calendar and time zone appropriately.
-* Preserve local workout time across daylight-saving transitions.
-* Handle leap years.
-* Handle time-zone changes.
-* Keep completed workouts attached to their historical completion records.
-* Recalculate only future planned schedule entries when the plan moves.
-* Include tests around daylight-saving boundaries.
-
-## 18. Persistence architecture
-
-The source training plan should be bundled as versioned JSON.
-
-On first launch:
-
-1. Validate the bundled schema.
-2. Import immutable plan templates.
-3. Generate scheduled workout instances.
-4. Persist user state locally.
-
-Keep these concerns separate:
-
-* Bundled plan definition.
-* Scheduled dates.
-* User completion history.
-* Modifications.
-* Settings.
-* Notification state.
-
-Create repository or service layers so views do not directly contain persistence logic.
-
-Suggested modules:
-
-* `PlanRepository`
-* `ScheduleEngine`
-* `WorkoutRepository`
-* `NotificationScheduler`
-* `ProgressCalculator`
-* `HealthService`
-* `ExportService`
-* `PlanValidator`
-
-## 19. Architecture and code quality
-
-Use a feature-oriented project structure.
-
-Example:
-
-```text
-Endurance/
-  App/
-  Core/
-    Models/
-    Persistence/
-    Services/
-    DesignSystem/
-    Utilities/
-  Features/
-    Onboarding/
-    Today/
-    Plan/
-    WorkoutDetail/
-    Progress/
-    Settings/
-  Resources/
-    TrainingPlans/
-  Tests/
-```
-
-Use:
-
-* Dependency injection.
-* Protocols around services that need mocking.
-* Small focused views.
-* View models or observable feature models when they meaningfully separate logic.
-* Explicit error states.
-* Previews for major screens.
-* Preview fixture data.
-* Localized strings.
-* Comments for reasoning, not obvious syntax.
-
-Avoid:
-
-* Massive view files.
-* Global mutable singletons.
-* Business logic inside button actions.
-* Force unwraps.
-* Silent catch blocks.
-* Arbitrary delays.
-* Fake data in production paths.
-* Overabstracted generic UI frameworks.
-* A custom design system that fights SwiftUI.
-
-## 20. Accessibility
-
-Accessibility is a release requirement, not an optional polish task.
-
-Support:
-
-* Dynamic Type, including accessibility sizes.
-* VoiceOver labels, values, hints, and logical order.
-* Sufficient contrast.
-* Differentiate Without Color.
-* Reduce Motion.
-* Increased Contrast.
-* Bold Text.
-* Button Shapes where system behavior applies.
-* Minimum comfortable touch targets.
-* Clear chart summaries.
-* Accessible status labels.
-* Landscape where appropriate.
-* Small and large supported iPhone screens.
-
-Do not put important text inside images.
-
-Do not make status discoverable only through icon color.
-
-Add accessibility identifiers for UI testing.
-
-## 21. Empty, loading, error, and unusual states
-
-Design and implement:
-
-* First launch before setup.
-* Notification permission denied.
-* No workout today.
-* Recovery day.
-* All workouts complete.
-* Plan file validation failure.
-* Import failure.
-* Missing Health permission.
-* No progress history yet.
-* Race date in the past.
-* Start date in the past.
-* User changes time zone.
-* User moves a workout across weeks.
-* User skips an entire week.
-* User resets the plan.
-* Data migration failure.
-* Export failure.
-
-Use helpful native recovery actions.
-
-Never show raw internal errors to the user.
-
-## 22. Privacy and security
-
-The MVP must:
-
-* Store data locally.
-* Avoid advertising SDKs.
-* Avoid third-party analytics.
-* Avoid account creation.
-* Avoid uploading health or workout data.
-* Request only necessary permissions.
-* Include purpose strings that clearly explain permissions.
-* Include a concise privacy statement in the app.
-* Make data export and deletion available.
-
-Prepare a `PRIVACY.md` file describing:
-
-* Data collected.
-* Storage location.
-* Permissions.
-* HealthKit behavior.
-* Export behavior.
-* Deletion behavior.
-* Whether any data leaves the device.
-
-## 23. Testing requirements
-
-Create meaningful automated tests.
-
-### Unit tests
-
-Test:
-
-* Date generation.
-* Race-date and start-date conversion.
-* Daylight-saving transitions.
-* Week and phase lookup.
-* Unit conversion.
-* Plan validation.
-* Plan migration.
-* Completion percentage.
-* Planned versus completed duration.
-* Rescheduling conflicts.
-* Notification identifiers.
-* Notification cancellation.
-* Notification regeneration.
-* Progress aggregation.
-* Export and import round trips.
-
-### UI tests
-
-Test:
-
-* Complete onboarding.
-* Open today’s workout.
-* Mark a workout complete.
-* Reschedule a workout.
-* Change notification settings.
-* Change race date.
-* View a week.
-* Export history.
-* Dynamic Type on critical screens.
-* Basic VoiceOver accessibility identifiers.
-
-### Manual QA checklist
-
-Create `QA_CHECKLIST.md` covering:
-
-* Physical device.
-* Light Mode.
-* Dark Mode.
-* Largest Dynamic Type.
-* Notification allowed.
-* Notification denied.
-* Airplane Mode.
-* App relaunch.
-* Device reboot.
-* Time-zone change.
-* DST boundary.
-* Small-screen iPhone.
-* Large-screen iPhone.
-* Reduce Motion.
-* Increased Contrast.
-* Fresh install.
-* Upgrade migration.
-
-## 24. Installation and distribution
-
-Make the project runnable on a physical iPhone.
-
-Provide exact instructions in `README.md` for:
-
-### Local development
-
-* Required Xcode version.
-* Opening the project.
-* Selecting a development team.
-* Setting the bundle identifier.
-* Running in Simulator.
-* Running on a connected iPhone.
-* Enabling Developer Mode when required.
-* Testing local notifications.
-
-### Personal installation
-
-Explain how to sign and install from Xcode.
-
-### TestFlight
-
-Explain:
-
-* Apple Developer Program requirement.
-* App Store Connect app creation.
-* Archive process.
-* Build upload.
-* Internal testing.
-* External testing and beta review where applicable.
-* Updating builds.
-
-Do not claim that an unsigned iOS app can be installed permanently.
-
-## 25. App icon and launch experience
-
-Create an original icon concept that is minimal and appropriate for iOS.
-
-Direction:
-
-* Simple endurance motif.
-* No text.
-* No Apple logo.
-* No imitation of an existing Apple app icon.
-* Readable at small sizes.
-* Avoid excessive detail.
-* Avoid generic AI gradients.
-
-Provide an icon specification and placeholder asset setup. Do not generate trademark-infringing artwork.
-
-Use the standard modern launch behavior. Do not build a prolonged branded splash screen.
-
-## 26. Seed data and previews
-
-Create:
-
-* A fully populated 36-week seed plan.
-* A lightweight sample plan for tests.
-* Preview states for:
-
-  * Base week.
-  * Recovery week.
-  * Peak week.
-  * Race week.
-  * Completed day.
-  * Modified day.
-  * Missed workout.
-  * Dark Mode.
-  * Large Dynamic Type.
-
-The production app must never depend on preview-only data.
-
-## 27. MVP scope
-
-The first shippable MVP must include:
-
-* Native onboarding.
-* Configurable training or race date.
-* Full 36-week bundled plan.
-* Today screen.
-* Plan-by-week screen.
-* Workout detail.
-* Complete, skip, shorten, replace, and reschedule actions.
-* Local persistence.
-* Local notifications.
-* Progress summaries.
-* Settings.
-* Unit selection.
-* JSON export.
-* Dark Mode.
-* Accessibility support.
-* Tests.
-* Physical-device installation instructions.
-
-Do not delay the MVP for:
-
-* Social features.
-* Coach marketplace.
-* Cloud accounts.
-* Remote push notifications.
-* Live Activities.
-* Apple Watch app.
-* AI coaching.
-* Weather automation.
-* Garmin integration.
-* Strava integration.
-* Subscription payments.
-
-## 28. Post-MVP roadmap
-
-Architect for, but do not prematurely implement:
-
-1. HealthKit import and export.
-2. Apple Watch companion.
-3. WorkoutKit integration if appropriate.
-4. Live Activities for an active session if justified.
-5. iCloud synchronization.
-6. Weather-aware recommendations.
-7. Equipment mileage and maintenance.
-8. Race packing checklist.
-9. Course profiles.
-10. Coach-created plans.
-11. Adaptive weekly recommendations.
-12. Garmin or Strava interoperability.
-13. Widgets.
-14. Siri and App Intents.
-15. Localization.
-
-Each future integration must remain optional and privacy-conscious.
-
-## 29. Required deliverables
-
-Produce:
-
-1. A buildable Xcode project.
-2. Complete Swift source.
-3. Full 36-week JSON plan.
-4. JSON schema or equivalent validator.
-5. Unit tests.
-6. UI tests.
-7. SwiftUI previews.
-8. `README.md`.
-9. `DECISIONS.md`.
-10. `TRAINING_SOURCES.md`.
-11. `PRIVACY.md`.
-12. `QA_CHECKLIST.md`.
-13. `CHANGELOG.md`.
-14. App icon specification.
-15. Sample screenshots or preview captures.
-16. A list of known limitations.
-17. A clear next-steps list.
-
-## 30. Work process
-
-Follow this sequence:
-
-### Stage 1: Research and specification
-
-* Review current Apple guidance.
-* Review notification behavior.
-* Research appropriate training-plan structure.
-* Write architecture and UX decisions.
-* Define the data schema.
-* Identify safety boundaries.
-
-### Stage 2: Functional skeleton
-
-* Create the project.
-* Add navigation.
-* Add models.
-* Add persistence.
-* Import a small sample plan.
-* Implement date generation.
-* Build basic Today and Plan screens.
-
-### Stage 3: Core workflow
-
-* Add workout details.
-* Add completion.
-* Add modifications.
-* Add notification scheduling.
-* Add settings.
-* Add progress calculations.
-
-### Stage 4: Full content
-
-* Create and validate the complete 36-week plan.
-* Add fueling, recovery, technique, and equipment content.
-* Add race-week content.
-
-### Stage 5: Apple-quality polish
-
-* Refine typography.
-* Refine spacing.
-* Remove unnecessary custom UI.
-* Verify native navigation.
-* Add Dark Mode.
-* Add accessibility.
-* Add subtle haptics and animations.
-* Review every screen for visual consistency.
-
-### Stage 6: Testing and delivery
-
-* Add automated tests.
-* Run the manual QA checklist.
-* Fix warnings and crashes.
-* Verify on a physical iPhone.
-* Complete documentation.
-* Prepare TestFlight instructions.
-
-Do not generate the entire application as one enormous unverified code dump.
-
-After each stage:
-
-* Build the project.
-* Run tests.
-* Report errors.
-* Fix errors before proceeding.
-* Update the changelog.
-
-## 31. Definition of done
-
-The project is complete only when:
-
-* It builds without errors.
-* It has no unexplained compiler warnings.
-* It launches on a supported iPhone simulator.
-* The documented physical-device workflow is valid.
-* Onboarding produces a usable schedule.
-* Today displays the correct date and sessions.
-* The full 36-week plan imports successfully.
-* Completion persists after relaunch.
-* Rescheduling persists after relaunch.
-* Notifications are not duplicated.
-* Completed workouts have their reminders canceled.
-* Date changes correctly regenerate future scheduling.
-* Progress calculations are tested.
-* Light and Dark Mode both look intentional.
-* Large Dynamic Type remains usable.
-* VoiceOver labels are meaningful.
-* The app works offline.
-* Exported data can be re-imported or parsed.
-* No health data leaves the device.
-* Documentation is sufficient for another developer to continue the project.
-
-## 32. Final response format
-
-Begin by giving me:
-
-1. Your researched technical recommendation.
-2. The proposed repository structure.
-3. The finalized data schema.
-4. A screen-by-screen UX specification.
-5. The implementation sequence.
-6. Important assumptions or risks.
-
-Then implement the project stage by stage.
-
-When making a decision, choose the option that produces the most native, maintainable, accessible, and dependable iPhone experience.
-
-Do not ask me broad design questions that this specification already answers. Make reasonable engineering decisions, document them, and proceed.
-
-
-## 28. Required full-product feature roadmap
-
-The application must ultimately implement every feature listed in this section.
-
-These are not optional ideas or speculative possibilities. They are required parts of the finished product.
-
-However, do not attempt to implement every feature simultaneously before the core training workflow is stable. Build the product through defined, testable releases while ensuring that the MVP architecture supports all later releases without destructive rewrites.
-
-Before beginning the MVP, produce an `EXPANSION_ARCHITECTURE.md` document describing how the shared domain model, persistence layer, app targets, entitlements, app groups, synchronization model, and service protocols will support every feature below.
-
-The MVP must include the architectural foundations required by these features, even where the complete user-facing functionality is implemented later.
-
-### Release sequence
-
-#### Release 1: Core training MVP
-
-Implement:
-
-* Native onboarding.
-* Complete 36-week training plan.
-* Today screen.
-* Plan screen.
-* Workout detail.
-* Completion and modification workflows.
-* Local persistence.
-* Local notifications.
-* Progress summaries.
-* Settings.
-* Export and import.
-* Accessibility.
-* Offline operation.
-* Automated tests.
-
-The MVP must not include temporary architecture that will be discarded for later releases.
-
-#### Release 2: Apple ecosystem integration
-
-Implement:
-
-* HealthKit import and export.
-* Apple Watch companion app.
-* WorkoutKit integration.
-* Active-workout handling.
-* Live Activities where justified.
-* Widgets.
-* Siri and App Intents.
-
-#### Release 3: Synchronization and intelligence
-
-Implement:
-
-* iCloud synchronization.
-* Weather-aware recommendations.
-* Equipment mileage and maintenance.
-* Race packing checklist.
-* Course profiles.
-* Adaptive weekly recommendations.
-
-#### Release 4: Coaching and external platforms
-
-Implement:
-
-* Coach-created plans.
-* Plan sharing and importing.
-* Garmin interoperability where permitted by available APIs and developer access.
-* Strava interoperability.
-* Conflict resolution and duplicate workout detection.
-* Full localization infrastructure and initial supported languages.
-
-Each release must build, pass tests, preserve existing data, and include migrations before moving to the next release.
-
----
-
-## 28.1 Shared architectural requirements
-
-The initial architecture must support multiple application targets:
-
-* Main iPhone application.
-* Apple Watch application.
-* Widget extension.
-* Live Activity extension if separate from the widget extension.
-* App Intents and Shortcuts integration.
-* Test targets.
-
-Create shared modules that can be consumed safely by these targets.
-
-Suggested modules:
-
-```text
-EnduranceApp/
-  Applications/
-    iOS/
-    watchOS/
-    Widgets/
-  Packages/
-    EnduranceDomain/
-    EndurancePersistence/
-    EnduranceTrainingPlans/
-    EnduranceHealth/
-    EnduranceWorkouts/
-    EnduranceSync/
-    EnduranceWeather/
-    EnduranceIntegrations/
-    EnduranceIntents/
-    EnduranceUI/
-  Tests/
-```
-
-Use Swift packages or clearly separated framework targets where they improve reuse and testability.
-
-Do not place core workout logic exclusively inside the iPhone application target.
-
-The shared domain layer must not depend directly on SwiftUI.
-
----
-
-## 28.2 Shared workout identity
-
-Every planned and completed workout must have a stable identity that survives:
-
-* Rescheduling.
-* iCloud synchronization.
-* HealthKit import.
-* Apple Watch completion.
-* Garmin import.
-* Strava import.
-* Plan updates.
-* Device replacement.
-* Export and re-import.
-
-Use separate identifiers for:
-
-* Plan template.
-* Scheduled workout.
-* Workout execution.
-* Imported external activity.
-* Synchronization record.
-
-Suggested fields:
-
-```swift
-struct WorkoutIdentity {
-    let planID: UUID?
-    let templateID: UUID?
-    let scheduledWorkoutID: UUID
-    let executionID: UUID?
-    let externalReferences: [ExternalWorkoutReference]
-}
-```
-
-An external reference should include:
-
-* Provider.
-* Provider activity identifier.
-* Imported timestamp.
-* Last synchronization timestamp.
-* Source revision or update timestamp where available.
-
-Never use a workout title and date as the sole identifier.
-
----
-
-## 28.3 HealthKit import and export
-
-Implement HealthKit as an optional integration.
-
-### Permissions
-
-Request permissions progressively and only after explaining their value.
-
-Potential read access:
-
-* Workouts.
-* Heart rate.
-* Resting heart rate.
-* Heart-rate variability where appropriate.
-* Cycling distance.
-* Running and walking distance.
-* Swimming distance.
-* Active energy.
-* Relevant workout routes when explicitly required.
-* Sleep data only if the adaptive recommendation system genuinely uses it and the user opts in.
-
-Potential write access:
-
-* Completed workouts.
-* Workout routes when recorded by this application.
-* Relevant workout metrics generated by this application.
-
-Do not request unrelated health categories.
-
-### Import behavior
-
-The app must:
-
-* Import completed workouts.
-* Match imported workouts to planned sessions when confidence is sufficiently high.
-* Show uncertain matches for user confirmation.
-* Avoid importing the same workout repeatedly.
-* Preserve the original HealthKit identifier and synchronization metadata.
-* Handle edited or deleted HealthKit workouts.
-* Allow the user to disconnect HealthKit without deleting local training history.
-
-Matching should consider:
-
-* Sport.
-* Start time.
-* Duration.
-* Distance.
-* Planned date.
-* Existing provider identifiers.
-
-Do not automatically mark a planned workout complete when the match is ambiguous.
-
-### Export behavior
-
-When the user completes a workout in Endurance:
-
-* Ask whether workouts should be saved to HealthKit.
-* Avoid creating duplicate entries.
-* Record the Endurance workout identity in metadata where supported.
-* Clearly distinguish manually logged workouts from device-recorded workouts.
-* Do not overwrite data owned by another application.
-
-### Privacy
-
-All HealthKit processing should remain on-device unless the user explicitly enables a supported synchronization feature.
-
-Do not use HealthKit data for advertising, profiling, or unrelated analytics.
-
----
-
-## 28.4 Apple Watch companion
-
-Create a native watchOS companion application.
-
-The watch app must remain useful when the iPhone is temporarily unavailable.
-
-### Watch home screen
-
-Show:
-
-* Today’s workouts.
-* Next workout.
-* Weekly progress.
-* Recovery-day status.
-* Quick access to active workout.
-
-### Planned workout detail
-
-Show:
-
-* Workout title.
-* Sport.
-* Duration or distance.
-* Warm-up.
-* Main intervals.
-* Recovery intervals.
-* Cooldown.
-* Intensity guidance.
-* Fueling reminder when relevant.
-
-### Active workout
-
-Where appropriate, allow the user to:
-
-* Start.
-* Pause.
-* Resume.
-* End.
-* Mark intervals.
-* View elapsed time.
-* View heart rate.
-* View pace or speed.
-* View distance.
-* View cycling power where available.
-* View current interval.
-* View upcoming interval.
-
-Use native watchOS workout-session APIs and HealthKit workout builders where appropriate.
-
-### Synchronization
-
-The watch app must:
-
-* Receive upcoming scheduled workouts.
-* Return completion data to the phone.
-* Avoid duplicate completions.
-* Queue changes while disconnected.
-* Resolve changes when connectivity returns.
-* Preserve completion even if the phone app is not running.
-
-Do not depend exclusively on immediate WatchConnectivity messages. Use durable transfer and shared system data where appropriate.
-
-### Watch design
-
-Follow watchOS conventions:
-
-* Glanceable information.
-* Large touch targets.
-* Minimal text entry.
-* Digital Crown support where useful.
-* Always-on display considerations.
-* Appropriate complications or widgets.
-* No dense iPhone layouts scaled down to the watch.
-
----
-
-## 28.5 WorkoutKit integration
-
-Research the current capabilities and platform requirements of WorkoutKit before implementation.
-
-Use WorkoutKit when it provides a native and maintainable way to:
-
-* Represent structured workouts.
-* Preview planned workouts.
-* Schedule workouts.
-* Synchronize scheduled workouts to the Workout app on Apple Watch.
-
-Create an internal workout conversion layer:
-
-```swift
-protocol WorkoutKitConverting {
-    func convert(_ workout: ScheduledWorkout) throws -> WorkoutKitRepresentation
-}
-```
-
-Not every Endurance workout must be forced into WorkoutKit.
-
-Before conversion, validate whether the workout structure is representable.
-
-Handle:
-
-* Warm-ups.
-* Work intervals.
-* Recovery intervals.
-* Repetitions.
-* Cooldowns.
-* Time goals.
-* Distance goals.
-* Open goals.
-* Intensity targets where supported.
-
-For unsupported workout structures:
-
-* Preserve the complete workout inside Endurance.
-* Explain any limitations.
-* Do not silently remove intervals or targets.
-* Offer a simplified WorkoutKit representation only with clear disclosure.
-
-Keep WorkoutKit synchronization state separate from HealthKit completion state.
-
----
-
-## 28.6 Live Activities
-
-Implement Live Activities only for a currently active workout or another genuinely live, time-sensitive event.
-
-Do not use Live Activities simply to display static reminders.
-
-A workout Live Activity may show:
-
-* Sport.
-* Elapsed time.
-* Current interval.
-* Remaining interval time.
-* Distance.
-* Heart rate.
-* Pace, speed, or power where appropriate.
-* Pause or resume control where supported and safe.
-* End-workout action with confirmation where appropriate.
-
-Requirements:
-
-* Use ActivityKit.
-* Design Lock Screen and Dynamic Island presentations.
-* Support compact, minimal, and expanded Dynamic Island regions where applicable.
-* Update at a responsible frequency.
-* End the activity promptly when the workout ends.
-* Recover correctly after application relaunch.
-* Avoid presenting stale workout state.
-* Protect sensitive data on the Lock Screen according to system conventions and user preferences.
-
-Reuse shared state and App Intents where appropriate.
-
----
-
-## 28.7 iCloud synchronization
-
-Implement optional private iCloud synchronization.
-
-The user must be able to use the application locally without enabling iCloud.
-
-Synchronize:
-
-* Application settings that should follow the user.
-* Training-plan selection.
-* Scheduled workouts.
-* Completion records.
-* Notes.
-* Modifications.
-* Equipment.
-* Race profiles.
-* Packing lists.
-* Coach-created plans stored by the user.
-* External integration mappings where appropriate, excluding secrets that belong in Keychain.
-
-Do not synchronize:
-
-* Temporary caches.
-* Weather responses.
-* Derived chart data.
-* Authentication tokens through ordinary model storage.
-* Large unnecessary duplicates of HealthKit data.
-
-### Conflict resolution
-
-Define conflict rules for:
-
-* A workout completed on the watch while being rescheduled on the phone.
-* Notes edited on two devices.
-* Plans updated while offline.
-* Equipment mileage updated from multiple imported activities.
-* A record deleted on one device and edited on another.
-
-Prefer:
-
-* Stable UUIDs.
-* Revision metadata.
-* Modification timestamps.
-* Tombstones where required.
-* User-visible resolution for destructive ambiguity.
-* Automatic merging for independent non-conflicting fields.
-
-Do not use “last write wins” blindly for every entity.
-
-### Migration
-
-Cloud synchronization must not be enabled until:
-
-* The schema is compatible.
-* Migration tests pass.
-* Existing local data can be adopted without duplication.
-* Development and production CloudKit environments are understood and documented.
-
-Provide a sync status screen with calm states:
-
-* Up to date.
-* Syncing.
-* Waiting for network.
-* iCloud unavailable.
-* Sign-in required.
-* Sync needs attention.
-
-Do not imply that synchronization is instantaneous.
-
----
-
-## 28.8 Weather-aware recommendations
-
-Use WeatherKit for optional weather information.
-
-Request location access only after the user enables weather features or selects a course requiring location.
-
-Support:
-
-* Current conditions.
-* Hourly forecast.
-* Daily forecast.
-* Temperature.
-* Apparent temperature.
-* Precipitation.
-* Wind speed and direction.
-* Humidity where relevant.
-* Severe-weather information where available.
-* Sunrise and sunset when useful.
-
-### Recommendation philosophy
-
-Weather recommendations must be advisory, not automatic commands.
-
-Examples:
-
-* Suggest moving a run earlier because of high heat.
-* Suggest an indoor trainer session during hazardous conditions.
-* Warn about lightning risk before open-water swimming.
-* Suggest additional hydration planning in hot conditions.
-* Warn about strong wind for a long ride.
-* Remind the athlete about visibility near sunset.
-
-Do not:
-
-* Automatically move workouts without permission.
-* Claim weather conditions are safe.
-* Replace official emergency alerts.
-* Encourage open-water activity in dangerous conditions.
-* Provide false precision.
-
-Every recommendation should include:
-
-* Relevant weather reason.
-* Forecast time.
-* Data freshness.
-* Suggested alternatives.
-* A dismiss action.
-
-Cache forecasts responsibly and show when data is stale.
-
-Handle denied location permission through manually selected locations.
-
-Follow WeatherKit attribution requirements.
-
----
-
-## 28.9 Equipment mileage and maintenance
-
-Create equipment records for:
-
-* Bicycles.
-* Running shoes.
-* Wetsuits.
-* Tires.
-* Chains.
-* Cassettes.
-* Brake pads.
-* Helmets.
-* Goggles.
-* Indoor trainers.
-* Other user-defined equipment.
-
-Fields should include:
-
-* Name.
-* Category.
-* Brand.
-* Model.
-* Purchase date.
-* Initial mileage or usage.
-* Current usage.
-* Retirement status.
-* Notes.
-* Maintenance intervals.
-* Last service date.
-* Next suggested service.
-* Optional purchase price.
-* Optional photo.
-
-Allow equipment to be assigned automatically or manually to workouts.
-
-Track usage using normalized distance or duration.
-
-Maintenance reminders may include:
-
-* Clean and lubricate chain.
-* Inspect tires.
-* Check brakes.
-* Charge electronic components.
-* Replace running shoes.
-* Inspect wetsuit.
-* Perform bicycle service before race day.
-
-Maintenance recommendations must be configurable. Do not present approximate replacement intervals as universal mechanical facts.
-
-Prevent imported duplicates from double-counting equipment mileage.
-
----
-
-## 28.10 Race packing checklist
-
-Create a configurable checklist organized by:
-
-* Before travel.
-* Registration.
-* Swim.
-* Transition 1.
-* Bike.
-* Bike special-needs bag.
-* Transition 2.
-* Run.
-* Run special-needs bag.
-* Nutrition.
-* Electronics.
-* Clothing.
-* Recovery.
-* Documents.
-* Race morning.
-* Post-race.
-
-Support:
-
-* Built-in checklist templates.
-* User-created items.
-* Required and optional status.
-* Quantities.
-* Notes.
-* Packed status.
-* Verified status.
-* Bag assignment.
-* Reminder date.
-* Race-specific overrides.
-* Reusable equipment links.
-
-Provide a race-week overview showing incomplete critical items.
-
-Do not reset a checklist accidentally when the race profile changes.
-
----
-
-## 28.11 Course profiles
-
-Create race and training course profiles.
-
-A race profile may include:
-
-* Race name.
-* Date.
-* Time zone.
-* Location.
-* Swim type.
-* Expected water temperature.
-* Swim course notes.
-* Bike distance.
-* Bike elevation.
-* Bike terrain.
-* Aid stations.
-* Run distance.
-* Run elevation.
-* Run terrain.
-* Cutoff times.
-* Transition notes.
-* Weather expectations.
-* Travel information.
-* Personal strategy.
-* External links.
-* Attached GPX or FIT route where supported.
-
-Course profiles should inform recommendations, but recommendations must clearly distinguish user-entered facts from retrieved or inferred information.
-
-Potential uses:
-
-* Elevation-specific bike preparation.
-* Heat preparation.
-* Open-water preparation.
-* Hill training.
-* Course-specific equipment.
-* Aid-station fueling plan.
-* Time-zone adjustment.
-* Race packing list generation.
-
-Do not claim externally obtained course information is current unless it has been verified.
-
----
-
-## 28.12 Coach-created plans
-
-Support plans authored outside the bundled application plan.
-
-Create a versioned portable plan format.
-
-A coach-created plan should support:
-
-* Plan metadata.
-* Author.
-* Version.
-* Intended athlete level.
-* Duration.
-* Phases.
-* Weeks.
-* Workouts.
-* Workout alternatives.
-* Notes.
-* Attachments or links.
-* Required equipment.
-* Training zones.
-* Revision history.
-
-Import methods may include:
-
-* JSON file.
-* Document picker.
-* Share sheet.
-* Universal link in a later release.
-* Cloud-based coach delivery in a later release.
-
-Validate every imported plan.
-
-Show the user:
-
-* Author.
-* Duration.
-* Number of workouts.
-* Requested schedule changes.
-* Unsupported workout elements.
-* Conflicts with existing history.
-* Whether the file has been modified since signing, if plan signing is implemented.
-
-Never execute arbitrary code or HTML from an imported plan.
-
-Separate:
-
-* Original coach-authored content.
-* Athlete modifications.
-* Completion history.
-* Local annotations.
-
-Allow a plan update without erasing completed history.
-
----
-
-## 28.13 Adaptive weekly recommendations
-
-Build a conservative recommendation engine.
-
-The first implementation should use explainable deterministic rules rather than pretending to provide human-level coaching.
+Use adapter and mapper layers.
+
+Example boundaries:
+
+    HealthWorkoutImporting
+    HealthWorkoutExporting
+    WorkoutKitConverting
+    WorkoutScheduling
+    ActiveWorkoutManaging
+    WatchWorkoutSyncing
+    LiveActivityManaging
+    TodaySnapshotProviding
+
+Add mocks for each boundary.
+
+=======================================================================
+C. HEALTHKIT AUTHORIZATION
+=======================================================================
+
+Implement a complete HealthKit authorization experience.
+
+Do not request HealthKit permission at first launch.
+
+Add a Health section under Settings that explains:
+
+- What Endurance can read.
+- What Endurance can write.
+- Why each category helps.
+- That access is optional.
+- That the core training plan works without HealthKit.
+- That permissions can be changed later in system settings.
+
+Request permissions progressively.
+
+Initial read types should include only data actually used:
+
+- Workouts
+- Heart rate
+- Resting heart rate
+- Heart-rate variability only if used by a visible feature
+- Running and walking distance
+- Cycling distance
+- Swimming distance
+- Active energy
+- Cycling power where supported
+- Running power where supported
+- Workout routes only when route functionality is implemented
+- Sleep only when adaptive recommendations are implemented in a later release
+
+Initial write types:
+
+- Completed workouts created by Endurance
+- Workout routes recorded by Endurance where applicable
+- Samples generated by an active Endurance workout where appropriate
+
+Do not request:
+
+- Reproductive health information
+- Medical records
+- Nutrition data unrelated to this feature set
+- Unused quantity types
+- Broad permissions “for future use”
+
+Add all required HealthKit entitlement and Info.plist purpose descriptions.
+
+Permission copy must be specific and human-readable.
+
+The app must remain stable when:
+
+- Health data is unavailable.
+- HealthKit is unsupported.
+- Permission is denied.
+- Only some categories are authorized.
+- Authorization changes outside the app.
+- Health data is temporarily inaccessible.
+
+Never display a misleading global “HealthKit authorized” boolean. Authorization
+must be represented per requested capability because HealthKit does not provide
+a simple read-access status for every category.
+
+=======================================================================
+D. HEALTHKIT WORKOUT IMPORT
+=======================================================================
+
+Implement workout import using an incremental, durable approach.
+
+Use an anchored query or another current recommended HealthKit mechanism so the
+app does not rescan the full HealthKit store on every launch.
+
+Persist:
+
+- Query anchor where appropriate
+- HealthKit workout UUID
+- Source bundle identifier
+- Source name
+- Device information where available
+- Modification or synchronization metadata
+- Import date
+- Last observed date
+- Deletion state
+- Match state
+- Associated local scheduled workout ID
+- Associated local execution ID
+
+Import relevant workout activities:
+
+- Swimming
+- Cycling
+- Running
+- Walking where it is used as a replacement or recovery activity
+- Strength training
+- Core training
+- Flexibility
+- Other workout types only through an explicit mapping
+
+Extract supported metrics:
+
+- Start and end time
+- Duration
+- Total distance
+- Active energy
+- Average and maximum heart rate where available
+- Cycling power where available
+- Running power where available
+- Pace or speed derived safely from source data
+- Indoor or outdoor classification where possible
+- Pool or open-water classification where possible
+- Workout route presence
+- Source application or device
+
+Do not infer unsupported values.
+
+Do not fabricate average heart rate or power from incomplete data.
+
+Do not overwrite the original HealthKit workout.
+
+=======================================================================
+E. MATCHING IMPORTED WORKOUTS TO THE PLAN
+=======================================================================
+
+Implement an explainable workout-matching engine.
 
 Potential inputs:
 
-* Planned versus completed training.
-* Recent duration.
-* Recent intensity.
-* Perceived exertion.
-* Fatigue.
-* Soreness.
-* Sleep data when explicitly permitted.
-* Resting heart rate when explicitly permitted.
-* Heart-rate variability when explicitly permitted and used cautiously.
-* Recent illness.
-* Missed workouts.
-* Weather.
-* Upcoming race date.
-* Recovery-week position.
-* Training history.
-* Sudden volume changes.
-
-Potential recommendations:
-
-* Continue as planned.
-* Reduce session duration.
-* Convert a hard workout to easy.
-* Replace a session with recovery.
-* Move a workout.
-* Avoid adding missed volume.
-* Delay progression.
-* Repeat a week.
-* Seek professional guidance.
-
-Every recommendation must include:
-
-* What is being suggested.
-* Why.
-* Which data contributed.
-* Confidence or uncertainty.
-* What remains unchanged.
-* A review and confirmation step.
-
-Never automatically rewrite the plan without user confirmation.
-
-Never diagnose an injury or illness.
-
-Never use simplistic single-metric rules such as treating one low HRV reading as proof that the athlete should not train.
-
-Keep the original plan and the adapted plan separately auditable.
-
-Record:
-
-* Recommendation.
-* Evidence.
-* User decision.
-* Resulting modification.
-* Timestamp.
-
----
-
-## 28.14 Garmin interoperability
-
-Research available Garmin developer programs, licensing terms, approval requirements, supported data, rate limits, and user-consent requirements before implementation.
-
-Do not assume public unrestricted API access.
-
-Where authorized, support appropriate combinations of:
-
-* Importing completed activities.
-* Importing activity summaries.
-* Importing detailed metrics.
-* Exporting or scheduling workouts where supported.
-* Synchronizing structured workouts where supported.
-
-Create a provider-independent protocol:
-
-```swift
-protocol ExternalFitnessProvider {
-    var providerID: FitnessProviderID { get }
-
-    func authorize() async throws
-    func disconnect() async throws
-    func fetchActivities(since: Date?) async throws -> [ExternalActivity]
-    func pushWorkout(_ workout: ScheduledWorkout) async throws
-    func refreshAuthorization() async throws
-}
-```
-
-Provider-specific code must not leak into the core domain layer.
-
-Store credentials and refresh tokens securely in Keychain.
-
-Handle:
-
-* Token expiration.
-* Revoked access.
-* Rate limiting.
-* Partial synchronization.
-* Provider outages.
-* Changed activities.
-* Deleted activities.
-* Duplicate imports.
-* Time-zone differences.
-* Unit conversion.
-
-Show last successful synchronization and actionable errors.
-
-Do not scrape Garmin websites or bypass provider restrictions.
-
----
-
-## 28.15 Strava interoperability
-
-Implement Strava through its supported authorization and API process.
-
-Potential features:
-
-* Import completed activities.
-* Match activities to scheduled workouts.
-* Open the original activity in Strava.
-* Export or upload activities only where supported and permitted.
-* Preserve privacy selections.
-* Avoid duplicate uploads.
-* Respect API rate limits and display requirements.
-
-Use OAuth securely.
-
-Use Keychain for secrets associated with the user session.
-
-Do not embed private client secrets directly in distributed application code where a secure server component is required.
-
-If secure token exchange or secret protection requires a backend, design the smallest privacy-conscious backend possible and document:
-
-* Hosted components.
-* Stored information.
-* Retention.
-* Security controls.
-* Failure modes.
-* Cost implications.
-
-The core application must remain usable when Strava is disconnected or unavailable.
-
----
-
-## 28.16 Widgets
-
-Create useful WidgetKit widgets.
-
-Recommended widgets:
-
-### Next Workout
-
-Show:
-
-* Sport.
-* Title.
-* Scheduled time.
-* Duration.
-* Training week.
-
-### Today
-
-Show:
-
-* Number of sessions.
-* Completion status.
-* Remaining duration.
-
-### Weekly Progress
-
-Show:
-
-* Completed versus planned training.
-* Upcoming key workout.
-
-Support appropriate widget families available on the targeted platforms.
-
-Use App Intents for configurable widgets and supported interactions.
-
-Potential interactions:
-
-* Open next workout.
-* Mark simple recovery actions complete.
-* Begin a supported workout.
-* Open weekly review.
-
-Do not place sensitive health details in a widget by default.
-
-Widgets must display a useful placeholder, snapshot, and timeline.
-
-They must handle stale data and unavailable shared storage.
-
----
-
-## 28.17 Siri and App Intents
-
-Use App Intents to expose clear actions.
-
-Potential actions:
-
-* Show today’s training.
-* Show the next workout.
-* Start the next workout.
-* Mark a workout complete.
-* Log perceived exertion.
-* Move a workout.
-* Show race packing list.
-* Add equipment maintenance.
-* Show weekly progress.
-
-Provide App Shortcuts with natural phrases.
-
-Examples:
-
-* “What is my training today?”
-* “Start my next Endurance workout.”
-* “Show my race checklist.”
-* “Log my workout effort.”
-
-Do not require the user to memorize unnatural command syntax.
-
-Require confirmation for destructive or ambiguous actions, including:
-
-* Skipping a workout.
-* Deleting data.
-* Moving a key workout.
-* Ending an active workout.
-* Replacing a session.
-
-App Intents should call the same domain services as the main application. Do not create duplicate business logic.
-
----
-
-## 28.18 Localization
-
-Build localization support from the beginning.
-
-Do not leave localization until after strings are hard-coded throughout the project.
+- Sport
+- Scheduled date
+- Start-time difference
+- Duration difference
+- Distance difference
+- Indoor or outdoor type
+- Existing provider reference
+- Existing execution record
+- Whether another imported workout is already matched
+
+Matching results:
+
+- Exact
+- High confidence
+- Possible match
+- No match
+- Conflict
+- Duplicate
+
+Rules:
+
+- Exact and previously linked provider identities may match automatically.
+- High-confidence matches may be suggested automatically but must be reversible.
+- Ambiguous matches must be presented to the user.
+- Never automatically match solely because sport and calendar day agree.
+- Never match one external workout to multiple planned workouts.
+- Never silently replace a manual completion.
+
+Add a Health Inbox or equivalent review screen containing:
+
+- Imported unmatched workouts
+- Suggested matches
+- Conflicts
+- Deleted or updated source activities
+- Import errors
+
+Allow the user to:
+
+- Confirm a match
+- Reject a match
+- Choose another planned workout
+- Keep the activity as unplanned training
+- Merge carefully with an existing manual completion
+- Undo a match
+
+Persist match decisions so the same suggestion does not repeatedly return.
+
+=======================================================================
+F. HEALTHKIT EXPORT
+=======================================================================
+
+When the user logs or records a workout in Endurance, optionally export it to
+HealthKit.
 
 Requirements:
 
-* Use String Catalogs or the current recommended Apple localization system.
-* Localize all user-visible strings.
-* Support pluralization.
-* Support grammatical variation where needed.
-* Format dates through locale-aware APIs.
-* Format numbers through locale-aware APIs.
-* Format distance, speed, pace, temperature, and energy through the selected user units and locale.
-* Avoid string concatenation.
-* Support right-to-left layout.
-* Avoid embedding text inside images.
-* Allow layouts to expand for longer translations.
-* Keep SF Symbols mirrored or unmirrored appropriately.
-* Test pseudolocalization.
+- Export must be opt-in.
+- Avoid duplicate exports.
+- Store the resulting HealthKit UUID.
+- Include Endurance identifiers in HealthKit metadata where permitted.
+- Distinguish manual logs from sensor-recorded workouts.
+- Do not re-export a workout originally imported from HealthKit.
+- Do not overwrite workouts created by another app.
+- Handle partial save failures.
+- Show clear save status.
 
-Initial complete language:
+Possible states:
 
-* English.
+- Not eligible
+- Awaiting permission
+- Saved to Health
+- Imported from Health
+- Save failed
+- Duplicate prevented
+- User disabled export
 
-Prepare the app so additional languages require translation rather than code changes.
+When users edit an Endurance-created manual workout, follow Apple-supported
+update behavior. Do not assume HealthKit samples can simply be mutated in place.
+Document how replacement or deletion is handled.
 
-Before release, select additional languages based on actual user needs and translation quality. Do not publish machine-translated safety guidance without review.
+Allow disconnecting HealthKit without deleting Endurance history.
 
----
+=======================================================================
+G. ACTIVE WORKOUT ARCHITECTURE
+=======================================================================
 
-## 28.19 App Groups and shared data
+Implement a genuine active-workout engine.
 
-Configure an App Group where required for safe sharing among:
+Support active workout execution primarily on Apple Watch, and support current
+Apple-recommended iPhone workout sessions where technically and experientially
+appropriate.
 
-* Main iPhone app.
-* Widget extension.
-* Live Activity.
-* Apple Watch-related components where supported.
-* App Intents.
+Use:
 
-Do not expose the entire mutable persistence store indiscriminately to every extension.
+- HKWorkoutSession
+- HKLiveWorkoutBuilder
+- HKLiveWorkoutDataSource
+- Current Apple multidevice workout APIs
+- Workout mirroring where supported
 
-Create a compact shared snapshot model for widgets and intents where appropriate.
+Model an explicit workout state machine:
 
-Example:
+- Idle
+- Preparing
+- Starting
+- Running
+- Paused
+- Resuming
+- Ending
+- Saving
+- Completed
+- Discarded
+- Failed
+- Recovering after interruption
 
-```swift
-struct SharedTodaySnapshot: Codable {
-    let generatedAt: Date
-    let trainingDayID: UUID
-    let nextWorkoutID: UUID?
-    let nextWorkoutTitle: String?
-    let nextWorkoutStart: Date?
-    let plannedMinutes: Int
-    let completedMinutes: Int
-    let sessionCount: Int
-    let completedSessionCount: Int
-}
-```
+Do not use scattered booleans such as `isRunning`, `isPaused`, and `isSaving`
+without a coherent state machine.
 
-Extensions should remain responsive and should not perform expensive full-database queries unnecessarily.
+Persist sufficient recovery state to handle:
 
----
+- iPhone app termination
+- Watch app termination
+- Temporary device disconnection
+- Bluetooth interruption
+- Watch locking
+- Phone locking
+- System suspension
+- App relaunch
+- Session restoration where supported
 
-## 28.20 Background work
+Active-workout actions:
 
-Use system-supported background execution conservatively.
+- Start
+- Pause
+- Resume
+- End
+- Save
+- Discard with confirmation
+- Mark interval or lap
+- Move to next interval when appropriate
+- Lock controls on Apple Watch if justified
 
-Potential background tasks:
+Metrics should update efficiently and include only supported values:
 
-* Refresh widget snapshots.
-* Process queued synchronization.
-* Refresh a limited weather cache.
-* Import recent external activities.
-* Recalculate upcoming notifications.
-* Perform CloudKit maintenance.
+- Elapsed time
+- Active time
+- Distance
+- Heart rate
+- Current and average pace
+- Current and average speed
+- Current and average cycling power where available
+- Calories where available
+- Current interval
+- Remaining interval time or distance
+- Upcoming interval
+
+Do not calculate metrics more frequently than needed.
+
+Use monotonic timing for elapsed workout duration rather than repeatedly
+subtracting wall-clock dates.
+
+=======================================================================
+H. APPLE WATCH COMPANION
+=======================================================================
+
+Create a native watchOS companion application.
+
+The watch app must not be a miniature copy of the iPhone app.
+
+Primary watch screens:
+
+1. Today
+2. Planned workout detail
+3. Active workout
+4. Interval screen
+5. Workout summary
+6. Weekly snapshot
+7. Settings or connection status where needed
+
+Today screen:
+
+- Current training day
+- Next workout
+- Remaining sessions
+- Recovery status
+- Start button for supported workouts
+
+Workout detail:
+
+- Sport
+- Duration or distance
+- Session purpose
+- Warm-up
+- Main set
+- Cooldown
+- Intensity target
+- Fueling note
+- Equipment note
+- Start or open in Workout app action
+
+Active workout:
+
+- Large glanceable metrics
+- One primary metric per page
+- Digital Crown support where helpful
+- Clear pause and end controls
+- Current interval
+- Upcoming interval
+- Heart-rate zone or effort target
+- Haptic interval transitions
+- Water Lock behavior for swimming where appropriate
+- Always-on-display-safe presentation
+- Accessibility labels
+
+Workout completion:
+
+- Save clearly
+- Discard only with confirmation
+- Show whether HealthKit save succeeded
+- Send the completion back to the phone
+- Preserve completion if the phone is offline
+
+The watch app must remain useful temporarily without the phone.
+
+Use durable synchronization rather than relying only on immediate messages.
+
+Use the current recommended combination of:
+
+- HealthKit as the authoritative completed-workout store
+- Workout mirroring APIs for active workout communication where available
+- WatchConnectivity for application-specific plan and state transfer where still
+  required
+- Application Context or background transfer for durable state where appropriate
+
+Do not duplicate workouts when both HealthKit import and WatchConnectivity report
+the same completion.
+
+=======================================================================
+I. WORKOUTKIT
+=======================================================================
+
+Implement a complete conversion layer from Endurance workouts into WorkoutKit.
+
+Support, where representable:
+
+- Single-goal workouts
+- Custom interval workouts
+- Repeating interval blocks
+- Warm-up
+- Work intervals
+- Recovery intervals
+- Cooldown
+- Time goals
+- Distance goals
+- Open goals
+- Heart-rate alerts
+- Pace alerts
+- Speed alerts
+- Power alerts
+- Cadence alerts where supported
+- Swim-bike-run multisport workouts
+- Triathlon race sessions
+
+Create a conversion result type:
+
+    exact
+    simplified
+    unsupported
+
+Every conversion must include:
+
+- Original workout ID
+- WorkoutKit scheduling identifier
+- Conversion version
+- Conversion warnings
+- Unsupported fields
+- Last scheduled date
+- Synchronization state
+
+For exact conversions, allow:
+
+- Preview in Endurance
+- Open in Apple Workout
+- Schedule on Apple Watch
+- Remove from schedule
+- Reschedule after local plan changes
+
+For simplified conversions:
+
+- Show exactly what will be omitted or changed
+- Require user confirmation
+- Keep the full original instructions in Endurance
+
+For unsupported conversions:
+
+- Explain why
+- Preserve normal Endurance workout tracking
+- Never silently drop steps
+
+Request WorkoutKit scheduling authorization only when the user enables the
+feature or schedules a workout.
+
+Synchronize only an appropriate upcoming window rather than blindly scheduling
+all 382 sessions.
+
+When a workout is:
+
+- Completed
+- Skipped
+- Rescheduled
+- Replaced
+- Removed
+- Shortened
+
+update the WorkoutKit schedule consistently.
+
+=======================================================================
+J. LIVE ACTIVITIES
+=======================================================================
+
+Implement an active-workout Live Activity using ActivityKit and WidgetKit.
+
+The Live Activity must only run during an actual active workout.
+
+Do not create Live Activities for ordinary future reminders.
+
+Display according to available space:
+
+Lock Screen:
+
+- Sport and workout title
+- Elapsed time
+- Current interval
+- Remaining interval duration or distance
+- Primary metric
+- Pause state
+- Endurance icon
+
+Dynamic Island compact:
+
+- Sport symbol
+- Elapsed time or current interval countdown
+
+Dynamic Island minimal:
+
+- Sport symbol or compact progress indication
+
+Dynamic Island expanded:
+
+- Elapsed time
+- Heart rate
+- Distance
+- Pace, speed, or power
+- Current and next interval
+- Safe interactive actions
+
+Apple Watch Smart Stack presentation where system-provided behavior applies.
+
+Interactions:
+
+- Pause or resume where supported and safe
+- Open active workout
+- Advance interval only where appropriate
+- End workout only with safe confirmation behavior
+
+Use App Intents for interactions.
+
+Live Activity state must:
+
+- Restore correctly after app relaunch where possible
+- Avoid duplicate activities
+- End immediately after save or discard
+- Mark stale state appropriately
+- Avoid exposing sensitive information unnecessarily on a locked screen
+- Respect system Live Activity authorization
+
+Do not add a remote server solely for Live Activities. Use local updates for the
+initial implementation unless remote updates are genuinely required.
+
+=======================================================================
+K. WIDGETS
+=======================================================================
+
+Create WidgetKit widgets using the existing SharedTodaySnapshot architecture.
+
+Required widgets:
+
+1. Next Workout
+2. Today
+3. Weekly Progress
+
+Support appropriate current widget families.
+
+Next Workout:
+
+- Sport
+- Title
+- Planned time
+- Duration or distance
+- Training week
+- Tap to open workout
+
+Today:
+
+- Planned session count
+- Completed count
+- Remaining duration
+- Next session
+- Recovery-day state
+
+Weekly Progress:
+
+- Planned versus completed time
+- Sport summary
+- Next key workout
 
 Requirements:
 
-* The application must remain correct when background execution does not occur.
-* Never rely on exact background timing.
-* Use idempotent operations.
-* Avoid excessive battery use.
-* Respect Low Power Mode where appropriate.
-* Make synchronization resumable.
-* Keep local user actions immediately durable.
+- Placeholder state
+- Snapshot state
+- Timeline behavior
+- Empty or recovery day
+- No configured plan
+- Stale shared data
+- Data unavailable
+- Light and Dark Mode
+- Dynamic Type where applicable
+- Privacy-conscious Lock Screen content
 
----
+Add configurable widgets through App Intents where useful.
 
-## 28.21 Entitlements and capability planning
+Do not query the full primary database from every timeline refresh if the compact
+shared snapshot is sufficient.
 
-Before finalizing the first production target, create `CAPABILITIES.md`.
+Regenerate shared snapshots after:
 
-Document which features require:
+- Completion
+- Reschedule
+- Plan-date change
+- Plan reset
+- HealthKit import match
+- Watch completion
+- App foreground
+- Relevant settings changes
 
-* HealthKit.
-* iCloud and CloudKit.
-* Background Modes.
-* Push Notifications if later required.
-* App Groups.
-* WeatherKit.
-* Siri.
-* Associated Domains if later required.
-* Apple Watch targets.
-* Widget extensions.
-* Keychain Sharing if required.
+=======================================================================
+L. SIRI, SHORTCUTS, AND APP INTENTS
+=======================================================================
 
-Do not enable capabilities without implementing their required behavior and permission descriptions.
+Implement App Intents backed by existing domain services.
 
-Clearly distinguish:
+Required intents:
 
-* Features supported with a free Apple ID during local development.
-* Features requiring Apple Developer Program membership.
-* Features requiring external provider approval.
-* Features requiring App Store review.
-* Features requiring a backend service.
+- ShowTodayTrainingIntent
+- ShowNextWorkoutIntent
+- StartNextWorkoutIntent
+- CompleteWorkoutIntent
+- LogPerceivedExertionIntent
+- PauseWorkoutIntent
+- ResumeWorkoutIntent
+- OpenRaceChecklistIntent when that feature later exists
 
----
+For Release 2, expose only actions backed by implemented functionality.
 
-## 28.22 Migration requirement
+Required App Shortcut phrases should include natural variants of:
 
-Every release must preserve data from earlier releases.
+- “What is my training today in Endurance?”
+- “Show my next Endurance workout.”
+- “Start my Endurance workout.”
+- “Pause my Endurance workout.”
+- “Resume my Endurance workout.”
+- “Log my effort in Endurance.”
 
-Before changing the data model:
+Confirmation requirements:
 
-1. Create a migration plan.
-2. Add migration fixtures representing previous application versions.
-3. Run migration tests.
-4. Verify CloudKit compatibility when synchronization is enabled.
-5. Verify extension compatibility.
-6. Document irreversible changes.
-7. Provide safe recovery behavior.
+- Completing a workout through Siri when multiple workouts are plausible
+- Ending an active workout
+- Discarding data
+- Replacing an existing completion
+- Any destructive action
 
-Never solve a migration problem by telling existing users to delete and reinstall the application.
+App Intents must use the same stores and services as the app.
 
----
+Do not duplicate completion, scheduling, or workout logic inside intent handlers.
 
-## 28.23 Full-product definition of done
+Implement deep links for:
 
-The full product is complete only when all required release stages have been implemented and verified.
+- Specific workout
+- Today
+- Active workout
+- Health Inbox
+- Health settings
 
-In addition to the MVP definition of done:
+=======================================================================
+M. SETTINGS AND USER EXPERIENCE
+=======================================================================
 
-* HealthKit import avoids duplicates.
-* HealthKit export is explicitly authorized.
-* Apple Watch workouts persist through temporary disconnection.
-* WorkoutKit conversion handles unsupported structures transparently.
-* Live Activities end correctly.
-* iCloud synchronization preserves data across devices.
-* Sync conflicts have deterministic or user-visible resolution.
-* Weather recommendations show their reasoning and freshness.
-* Equipment usage is not double-counted.
-* Packing lists persist independently for each race.
-* Course profiles can inform training without silently changing it.
-* Coach plans validate before import.
-* Adaptive recommendations are explainable and require confirmation.
-* Garmin integration follows approved access terms.
-* Strava authentication and rate limits are handled.
-* Widgets work with stale or unavailable data.
-* Siri actions use shared domain logic.
-* All strings are localization-ready.
-* Migration tests cover every released schema version.
-* Disconnecting any optional service does not break the core application.
+Expand Settings with native grouped sections.
+
+Health:
+
+- Connection state
+- Read-data explanation
+- Write-data explanation
+- Import toggle
+- Export toggle
+- Import status
+- Last successful import
+- Health Inbox
+- Open system Health permissions
+- Disconnect
+
+Apple Watch:
+
+- Companion availability
+- Last synchronization
+- Pending changes
+- Workout app scheduling status
+- Troubleshooting
+
+WorkoutKit:
+
+- Authorization state
+- Auto-schedule upcoming workouts toggle
+- Scheduling horizon
+- Supported workout preview
+- Resync
+- Remove scheduled workouts
+
+Active Workout:
+
+- Metric preferences
+- Haptic interval alerts
+- Auto-pause only if correctly implemented and user-controlled
+- Countdown preference
+- Live Activities toggle where system status permits
+
+Widgets and Siri:
+
+- Explain available widgets
+- Show available shortcuts
+- Open Shortcuts app where appropriate
+
+Use calm and accurate wording.
+
+Do not claim a permission is granted unless the system confirms it.
+
+=======================================================================
+N. DATA MODEL AND MIGRATION
+=======================================================================
+
+Add only the fields and entities necessary for Release 2.
+
+Potential new entities:
+
+HealthAuthorizationState
+HealthImportCursor
+ExternalWorkoutRecord
+WorkoutMatchDecision
+WorkoutExecution
+ActiveWorkoutRecoveryRecord
+WorkoutKitScheduleRecord
+WatchSyncRecord
+IntegrationErrorRecord
+
+Do not store high-frequency live samples redundantly in SwiftData when HealthKit
+is the appropriate authoritative store.
+
+Do store enough summarized execution data for:
+
+- Offline app display
+- Matching
+- Progress calculations
+- Provider identity
+- Conflict resolution
+- Export
+- Recovery after interruptions
+
+Create explicit schema version 2.
+
+Create and test migration from schema version 1.
+
+Migration requirements:
+
+- Preserve every scheduled workout
+- Preserve completion history
+- Preserve reschedules
+- Preserve preferences
+- Preserve notes
+- Preserve deterministic identifiers
+- Preserve notification identities
+- Generate new optional records only as needed
+- Remain compatible with future CloudKit synchronization
+
+Provide migration fixtures and tests.
+
+Never require reinstalling the app.
+
+=======================================================================
+O. DUPLICATE PREVENTION
+=======================================================================
+
+Duplicate prevention is a release-critical requirement.
+
+Potential duplicate pathways include:
+
+- Apple Watch saves to HealthKit, then watch sync reports completion
+- iPhone active workout saves to HealthKit, then HealthKit import sees it
+- User manually completes a workout, then HealthKit imports a matching workout
+- WorkoutKit schedule completion appears through HealthKit
+- App relaunch repeats an anchored query result
+- Temporary watch disconnection retries a transfer
+- User taps save multiple times
+- App Intent and in-app action occur close together
+
+Use stable provider identifiers and idempotency keys.
+
+Write explicit tests for every duplicate pathway.
+
+The app must never display two completed workouts for one execution merely
+because it was observed through two Apple frameworks.
+
+=======================================================================
+P. ERROR HANDLING
+=======================================================================
+
+Implement visible, recoverable states for:
+
+- HealthKit unavailable
+- Permission denied
+- Partial authorization
+- Import query failure
+- HealthKit save failure
+- WorkoutKit authorization denial
+- WorkoutKit conversion failure
+- Watch not paired
+- Watch app not installed
+- Watch temporarily unreachable
+- Active workout interrupted
+- Live Activity unavailable
+- Widget snapshot stale
+- App Intent ambiguity
+- Migration failure
+- Unsupported workout format
+
+Errors must:
+
+- Avoid raw framework messages
+- Explain what happened
+- Say what data was preserved
+- Offer a useful recovery action
+- Be logged through the existing logging system without exposing health data
+
+=======================================================================
+Q. PRIVACY AND SECURITY
+=======================================================================
+
+Update PRIVACY.md and in-app privacy information.
+
+Requirements:
+
+- All HealthKit processing remains on-device.
+- No health or workout data is uploaded.
+- No analytics or advertising SDKs.
+- No external account.
+- No cloud backend in Release 2.
+- Health data must not be included in ordinary diagnostic logs.
+- User must explicitly enable HealthKit.
+- User can disconnect HealthKit.
+- User can delete Endurance’s local integration records.
+- Disconnecting does not attempt to delete workouts owned by other apps.
+- Keychain must be used for any sensitive credentials introduced later, though
+  no external credentials are needed in Release 2.
+
+Audit every log statement.
+
+Do not log:
+
+- Heart rate values
+- Routes
+- HealthKit UUIDs in ordinary production logs
+- Medical or sleep information
+- Full exported training history
+
+=======================================================================
+R. ACCESSIBILITY AND LOCALIZATION
+=======================================================================
+
+Every new screen and target must use the existing String Catalog.
+
+No hard-coded user-facing English strings.
+
+Add accessibility identifiers for:
+
+- Health settings
+- Health Inbox
+- Match confirmation
+- Watch Today screen
+- Watch active workout controls
+- WorkoutKit scheduling
+- Live Activity deep links
+- Widget links
+- App Intent entities and dialogs
+
+Test:
+
+- VoiceOver
+- Large text where applicable
+- Increased Contrast
+- Differentiate Without Color
+- Reduce Motion
+- Watch accessibility
+- Widget legibility
+- Live Activity contrast
+- Localization pseudolanguage
+
+Do not regress Release 1 accessibility.
+
+=======================================================================
+S. AUTOMATED TESTS
+=======================================================================
+
+Add unit tests for:
+
+HealthKit:
+
+- Type mapping
+- Authorization request construction
+- Incremental-import cursor persistence
+- Imported-workout mapping
+- Update and deletion handling
+- Duplicate prevention
+- Matching confidence
+- Manual match decisions
+- Export eligibility
+- Export metadata
+- Disconnect behavior
+
+WorkoutKit:
+
+- Exact conversions
+- Simplified conversions
+- Unsupported conversions
+- Interval conversion
+- Triathlon conversion
+- Schedule addition
+- Rescheduling
+- Cancellation
+- Authorization denial
+- Synchronization idempotency
+
+Active workouts:
+
+- State-machine transitions
+- Invalid transitions
+- Pause and resume timing
+- Save and discard
+- Interruption recovery
+- Duplicate save prevention
+- Metric summary generation
+
+Watch synchronization:
+
+- Offline queue
+- Repeated transfer
+- Out-of-order transfer
+- Conflict resolution
+- Watch completion plus HealthKit import
+- Phone reschedule during watch session
+
+Widgets:
+
+- Snapshot generation
+- Empty state
+- Recovery day
+- Completed day
+- Stale data
+- Deep-link generation
+
+App Intents:
+
+- Entity lookup
+- Ambiguous workout
+- Successful completion
+- Active workout start
+- Confirmation requirements
+- Error handling
+
+Migration:
+
+- Release 1 fresh store
+- Release 1 completed workout
+- Release 1 rescheduled workout
+- Release 1 customized schedule
+- Repeated migration idempotency
+
+All current 69 domain tests and 29 app tests must continue passing unless the
+status report has since changed; report the actual baseline and final numbers.
+
+=======================================================================
+T. UI AND INTEGRATION TESTS
+=======================================================================
+
+Add simulator-capable UI tests for:
+
+- Opening Health settings
+- Permission explanation before system prompt
+- Health disconnected state
+- Health Inbox fixture
+- Confirming a suggested workout match
+- Rejecting a match
+- WorkoutKit preview
+- WorkoutKit unsupported warning
+- Opening widget deep links through testable URLs
+- App Intent destination handling
+- Active-workout UI using a mock session
+- Live Activity state rendering through previews
+- Migration launch using fixture data
+
+Create preview fixtures for:
+
+- Authorized HealthKit
+- Denied HealthKit
+- Partial authorization
+- Imported unmatched run
+- High-confidence bike match
+- Conflicting swim match
+- Active run
+- Paused bike
+- Active interval
+- Watch disconnected
+- Watch synchronized
+- Exact WorkoutKit conversion
+- Simplified conversion
+- Unsupported conversion
+- Widget states
+- Dynamic Island states
+- Lock Screen Live Activity
+- Watch workout summary
+
+Do not fake framework success inside production code. Use dependency injection
+and test-only service implementations.
+
+=======================================================================
+U. PHYSICAL-DEVICE VERIFICATION
+=======================================================================
+
+Prepare a PHYSICAL_DEVICE_RELEASE_2_CHECKLIST.md.
+
+The checklist must cover both the remaining Release 1 hardware gate and all
+Release 2 integrations.
+
+iPhone:
+
+- Signing and launch
+- Notification permission
+- Notification delivery
+- Notification non-duplication
+- Reminder cancellation after completion
+- Reminder regeneration after move
+- Deep-link tap
+- HealthKit authorization
+- HealthKit import
+- HealthKit export
+- Duplicate prevention
+- Live Activity
+- Lock Screen
+- Dynamic Island where supported
+- Siri
+- Shortcuts
+- Widgets
+- Reboot recovery
+- Airplane Mode
+- Time-zone change
+
+Apple Watch:
+
+- Pairing
+- App install
+- Health authorization
+- Planned workout transfer
+- WorkoutKit schedule appearance
+- Start workout
+- Heart-rate collection
+- Distance collection
+- Pause and resume
+- Interval transitions
+- Save
+- Discard
+- Phone disconnected
+- Reconnection
+- Duplicate prevention
+- Completion reflected on iPhone
+- Health app workout visibility
+- Background behavior
+- Always-on presentation
+- Swimming behavior where test hardware permits
+
+The agent must clearly distinguish:
+
+- Verified on Simulator
+- Verified through unit tests
+- Verified through previews
+- Requires physical iPhone
+- Requires physical Apple Watch
+
+Never claim hardware verification without actually performing it.
+
+=======================================================================
+V. DOCUMENTATION
+=======================================================================
+
+Update:
+
+- README.md
+- DECISIONS.md
+- DATA_SCHEMA.md
+- EXPANSION_ARCHITECTURE.md
+- CAPABILITIES.md
+- PRIVACY.md
+- QA_CHECKLIST.md
+- UX_SPEC.md
+- CHANGELOG.md
+- LIMITATIONS_AND_NEXT_STEPS.md
+
+Add:
+
+- RELEASE_2_IMPLEMENTATION_PLAN.md
+- RELEASE_2_VERIFICATION.md
+- HEALTHKIT_ARCHITECTURE.md
+- WATCH_ARCHITECTURE.md
+- WORKOUTKIT_MAPPING.md
+- ACTIVE_WORKOUT_STATE_MACHINE.md
+- HEALTH_MATCHING_RULES.md
+- PHYSICAL_DEVICE_RELEASE_2_CHECKLIST.md
+
+Document all required entitlements and provisioning steps for every target.
+
+=======================================================================
+W. IMPLEMENTATION ORDER
+=======================================================================
+
+Implement in this order:
+
+Stage 1: Baseline and migration safety
+
+- Run baseline
+- Add schema version 2
+- Add migration fixtures
+- Add Release 2 service protocols
+- Confirm Release 1 data preservation
+
+Stage 2: HealthKit read integration
+
+- Authorization UX
+- Incremental workout import
+- External records
+- Matching engine
+- Health Inbox
+- Duplicate prevention
+
+Stage 3: HealthKit write integration
+
+- Manual workout export
+- Metadata identity
+- Save-state UI
+- Edit and deletion behavior
+- Export tests
+
+Stage 4: WorkoutKit
+
+- Converter
+- Preview
+- Authorization
+- Scheduling
+- Rescheduling
+- Cancellation
+- Triathlon support
+- Unsupported-flow UI
+
+Stage 5: Active workout core
+
+- State machine
+- HealthKit workout session
+- Live metrics
+- Save and discard
+- Interruption recovery
+- Duplicate prevention
+
+Stage 6: Apple Watch
+
+- watchOS target
+- Today
+- Workout details
+- Active workout UI
+- Durable synchronization
+- Offline completion
+- Summary
+
+Stage 7: Live Activities
+
+- Activity attributes
+- State updates
+- Lock Screen
+- Dynamic Island
+- Deep links
+- App Intent actions
+- Recovery and ending
+
+Stage 8: Widgets and App Intents
+
+- Shared snapshots
+- Widgets
+- Siri intents
+- App Shortcuts
+- Deep links
+- Timeline tests
+
+Stage 9: Full-system verification
+
+- Run all tests
+- Run migration tests
+- Run UI tests
+- Run accessibility matrix
+- Capture screenshots
+- Prepare physical-device checklist
+- Update documentation
+
+Build and run tests after each stage.
+
+Do not continue to the next stage while the project has compiler errors,
+unexplained warnings, migration failures, or regressions.
+
+=======================================================================
+X. DEFINITION OF DONE
+=======================================================================
+
+Release 2 implementation is complete only when:
+
+- Release 1 data migrates without loss.
+- All existing Release 1 tests continue passing.
+- HealthKit permission is progressive and understandable.
+- HealthKit imports workouts incrementally.
+- Imported workouts are not duplicated.
+- Suggested matches are explainable and reversible.
+- Ambiguous matches require user confirmation.
+- Manual Endurance workouts can be exported to HealthKit.
+- Endurance never re-exports imported HealthKit workouts.
+- Active workouts use a coherent state machine.
+- Workout data can be saved to HealthKit.
+- The watch app supports offline completion.
+- Phone and watch synchronization is idempotent.
+- WorkoutKit supports exact, simplified, and unsupported outcomes.
+- Structured workouts can be scheduled where supported.
+- Triathlon workouts use the appropriate WorkoutKit representation where
+  applicable.
+- Plan modifications update scheduled workouts consistently.
+- Live Activities start, update, recover, and end correctly.
+- Widgets show useful current information.
+- App Intents use shared business logic.
+- All new strings are localized.
+- All new screens are accessible.
+- No health data leaves the device.
+- No destructive schema rewrite occurs.
+- The application builds with zero errors.
+- There are zero unexplained compiler warnings.
+- Automated tests pass.
+- Simulator verification is documented honestly.
+- Hardware-only checks are clearly listed and not falsely marked complete.
+
+After implementation, return:
+
+1. Exact files added and changed.
+2. Schema and migration summary.
+3. Entitlements added.
+4. HealthKit types requested.
+5. HealthKit import and export behavior.
+6. WorkoutKit coverage and limitations.
+7. Apple Watch features implemented.
+8. Live Activity states.
+9. Widgets and App Intents implemented.
+10. Baseline and final test counts.
+11. Test commands and results.
+12. Screenshots.
+13. Known limitations.
+14. Physical-device checks still required.
+15. Recommendation on whether Release 2 is ready for hardware verification.
+
+Do not begin Release 3 until Release 2 has passed physical iPhone and Apple Watch
+verification.

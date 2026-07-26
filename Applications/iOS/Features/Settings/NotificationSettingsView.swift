@@ -18,16 +18,22 @@ struct NotificationSettingsView: View {
             Section("Categories") {
                 ForEach(NotificationCategory.allCases, id: \.self) { cat in
                     Toggle(isOn: binding(for: cat)) {
-                        Label(title(cat), systemImage: cat.symbolName)
+                        Label(cat.localizedName, systemImage: cat.symbolName)
                     }
+                    .accessibilityIdentifier(A11y.Notifications.category(cat.rawValue))
                 }
             }
 
-            Section("Timing") {
+            // `Section` has no (title, content:, footer:) initializer — a string
+            // title and a footer are mutually exclusive, so use the explicit
+            // header/footer form.
+            Section {
                 Stepper("Workout reminder: \(prefs.workoutLeadMinutes) min before",
                         value: bindingInt(\.workoutLeadMinutes), in: 0...240, step: 15)
                 Stepper("Scheduling window: \(prefs.schedulingWindowDays) days",
                         value: bindingInt(\.schedulingWindowDays), in: 7...35, step: 7)
+            } header: {
+                Text("Timing")
             } footer: {
                 Text("iOS keeps at most 64 pending reminders. \(AppConfig.productName) schedules the soonest ones and refreshes them automatically.")
             }
@@ -43,14 +49,21 @@ struct NotificationSettingsView: View {
         Section {
             switch authStatus {
             case .authorized, .provisional, .ephemeral:
-                Label("Notifications are allowed", systemImage: "checkmark.circle").foregroundStyle(.green)
+                // Status is stated in words; the symbol reinforces it. No
+                // color-only signalling.
+                Label("Notifications are allowed", systemImage: "checkmark.circle")
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier(A11y.Notifications.authStatus)
             case .denied:
                 VStack(alignment: .leading, spacing: Theme.Space.s) {
-                    Label("Notifications are turned off", systemImage: "bell.slash").foregroundStyle(.secondary)
+                    Label("Notifications are turned off", systemImage: "bell.slash")
+                        .foregroundStyle(.secondary)
                     Button("Open Settings") {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
+                    .accessibilityIdentifier(A11y.Notifications.openSettings)
                 }
+                .accessibilityIdentifier(A11y.Notifications.authStatus)
             case .notDetermined:
                 Button("Enable notifications") {
                     Task {
@@ -59,6 +72,7 @@ struct NotificationSettingsView: View {
                         await env.refreshSideEffects()
                     }
                 }
+                .accessibilityIdentifier(A11y.Notifications.authStatus)
             @unknown default:
                 EmptyView()
             }
@@ -92,14 +106,4 @@ struct NotificationSettingsView: View {
         }
     }
 
-    private func title(_ c: NotificationCategory) -> String {
-        switch c {
-        case .preparation: return "Preparation (evening before)"
-        case .workout: return "Workout reminders"
-        case .secondReminder: return "Second reminder"
-        case .fueling: return "Long-session fueling"
-        case .recovery: return "Recovery check"
-        case .weeklyReview: return "Weekly review"
-        }
-    }
 }

@@ -20,7 +20,9 @@ struct WeekDetailView: View {
                     Text(def.objective).font(.body)
                     LabeledContent("Planned time", value: fmt.duration(minutes: def.plannedMinutes))
                     if def.load == .recovery {
-                        Label("Recovery week — keep it genuinely easy.", systemImage: "bed.double").foregroundStyle(.purple)
+                        // Wording and symbol carry the meaning; no color-only cue.
+                        Label("Recovery week — keep it genuinely easy.", systemImage: "bed.double")
+                            .foregroundStyle(.secondary)
                     }
                     if let note = def.coachNote {
                         Label(note, systemImage: "text.bubble").font(.callout).foregroundStyle(.secondary)
@@ -31,13 +33,14 @@ struct WeekDetailView: View {
             let byDay = Dictionary(grouping: scheduled, by: \.dayIndex).sorted { $0.key < $1.key }
             ForEach(byDay, id: \.key) { _, workouts in
                 Section {
-                    ForEach(workouts.sorted { $0.order < $1.order }) { w in
+                    ForEach(Array(workouts.sorted { $0.order < $1.order }.enumerated()), id: \.element.id) { index, w in
                         NavigationLink(value: w.id) {
-                            TodayWorkoutRow(workout: w, fmt: fmt)
+                            TodayWorkoutRow(workout: w, fmt: fmt, index: index)
                         }
                     }
                 } header: {
                     Text(workouts.first?.scheduledDate ?? Date(), format: .dateTime.weekday(.wide).month().day())
+                        .accessibilityAddTraits(.isHeader)
                 }
             }
         }

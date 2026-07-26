@@ -17,7 +17,12 @@ struct ProgressDashboardView: View {
     var body: some View {
         List {
             if store.allWorkouts.isEmpty {
-                Section { EmptyStateView(systemImage: "chart.xyaxis.line", title: "No history yet", message: "Complete a session and your progress will appear here.") }
+                Section {
+                    EmptyStateView(systemImage: "chart.xyaxis.line",
+                                   title: "No history yet",
+                                   message: "Complete a session and your progress will appear here.")
+                        .accessibilityIdentifier(A11y.Progress.empty)
+                }
             } else {
                 durationSection
                 completionSection
@@ -48,6 +53,7 @@ struct ProgressDashboardView: View {
             }
             .chartXScale(domain: .automatic)
             .frame(height: 200)
+            .accessibilityIdentifier(A11y.Progress.durationChart)
             .accessibilityLabel("Planned versus completed training minutes by week")
         }
     }
@@ -58,7 +64,7 @@ struct ProgressDashboardView: View {
             ForEach(wp.bySport.filter { $0.sessionCount > 0 }, id: \.sport) { sp in
                 HStack {
                     SportBadge(sport: sp.sport)
-                    Text(sp.sport.englishName)
+                    Text(sp.sport.localizedName)
                     Spacer()
                     Text("\(sp.completedSessionCount)/\(sp.sessionCount)").foregroundStyle(.secondary).monospacedDigit()
                 }

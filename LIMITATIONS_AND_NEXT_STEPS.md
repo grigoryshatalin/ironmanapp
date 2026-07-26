@@ -1,73 +1,89 @@
 # Known Limitations & Next Steps — Endurance
 
 Deliverables §29 (16) known limitations and (17) next steps. Honest status of the
-project as of 2026‑07‑25.
+project as of 2026‑07‑26.
 
 ---
 
 ## Known limitations
 
-### Build environment (most important)
-- This repository was assembled in a **headless environment with only the Swift
-  Command Line Tools installed — no Xcode**. Consequently:
-  - ✅ The Foundation‑only **`EnduranceDomain`** package and the generated
-    **36‑week plan** are genuinely **compiled and unit‑tested here** — `swift
-    build` and `swift test` succeed with **57 passing tests** and zero warnings.
-  - ⚠️ The **SwiftUI iOS app, watchOS app, and extensions** are authored to
-    production intent against that verified core, but **have not been compiled or
-    run in this environment** (they require the iOS SDK / Xcode). Expect to fix a
-    handful of environment‑specific issues on first Xcode build.
-  - **First action on a Mac with Xcode 26:**
-    ```bash
-    brew install xcodegen
-    xcodegen generate
-    open Endurance.xcodeproj   # then build & run
-    ```
-- No **App Store screenshots / preview captures** were produced — there is no iOS
-  Simulator in this environment. That deliverable is pending a Simulator run
-  (`xcrun simctl` + the SwiftUI previews already defined).
+### Build status
+The app now **builds and runs**. On Xcode 26.6 / iOS 26.5 SDK:
 
-### Scope (release staging)
-- **Release 1 (Core MVP)** is the focus. The following are **architected**
-  (service protocols, layered `WorkoutIdentity`, App Group, `SharedTodaySnapshot`,
-  separate packages) but their user‑facing functionality is **not implemented
-  yet**:
-  - R2: HealthKit import/export, Apple Watch app, WorkoutKit, Live Activities,
-    Widgets, Siri/App Intents.
-  - R3: iCloud/CloudKit sync, WeatherKit advisories, equipment mileage, race
-    packing lists, course profiles, adaptive weekly recommendations.
-  - R4: coach‑authored plans, Garmin/Strava interoperability, full localization.
-- Disconnecting any of these never breaks the core (the core depends on none of
-  them) — see `EXPANSION_ARCHITECTURE.md`.
+- ✅ `EnduranceDomain` + the generated 36‑week plan: **69 tests passing**, zero
+  warnings, plan JSON byte‑reproducible.
+- ✅ The **SwiftUI iOS app compiles clean** (0 errors, 0 warnings) and runs on
+  four simulator models. **4 app unit + 7 UI acceptance + 9 accessibility +
+  9 screenshot tests** pass. See `RELEASE_1_VERIFICATION.md`.
+- ⏳ The **watchOS app, widgets, and App Intents** are architected but not yet
+  built — they are Release 2.
 
-### Product / content
-- The 36‑week plan is a **single generic finish‑goal plan**; it is personalized
-  only through scheduling (start/race date, default times). The onboarding
-  **capability inputs** feed warnings/future adaptation but do not silently
-  rewrite the plan.
-- **Preferred long‑session / rest‑day remapping** is *recorded* in
-  `ScheduleConfiguration` but the day‑rotation transform that applies it is not
-  yet wired — the default weekly structure is used.
-- Notifications use the **`.active`** interruption level (no Time‑Sensitive
-  entitlement in the MVP, by choice).
-- Training, fueling, and hydration content is **educational**, framed as
-  configurable targets — not medical or coaching advice (see `TRAINING_SOURCES.md`).
+Reproduce from a clean machine:
+```bash
+brew install xcodegen
+xcodegen generate
+xcodebuild test -project Endurance.xcodeproj -scheme Endurance \
+  -destination 'platform=iOS Simulator,name=iPhone 17'
+```
+Note that Xcode 26 ships **without** iOS platform support; a one‑time
+`xcodebuild -downloadPlatform iOS` (~8 GB) is required before any iOS
+destination resolves.
+
+### Not yet verified
+- **Physical iPhone.** Everything to date is Simulator‑only. This is the single
+  blocker on Release 1 sign‑off.
+- **Notification delivery.** Identifier stability, non‑duplication, cancellation,
+  regeneration and the ≤64 budget are unit‑tested in `NotificationPlanner`;
+  actual delivery, the permission prompt, and tap‑through deep links require a
+  device.
+- **The manual‑only QA rows**: Airplane Mode, device reboot, a live time‑zone
+  change, and a real DST boundary.
+
+Now verified (previously listed here): persistence of completion and
+rescheduling across terminate + relaunch, the Dynamic Type / VoiceOver / Dark
+Mode / Reduce Motion / Increased Contrast / Differentiate Without Color / Bold
+Text matrix, small and large iPhone layouts, and screenshots of every screen.
+
+### Gaps against the brief
+
+The 2026-07-26 refinement pass closed most of these. What remains:
+
+- **On-device notification verification is outstanding** — the one blocker on
+  Release 1 sign-off. No physical iPhone is connected. The decision layer
+  (stable ids, no duplicates, cancellation, regeneration, rolling ≤64 window) is
+  unit-tested; delivery, the permission prompt, and tap-through deep links are
+  not. See `RELEASE_1_VERIFICATION.md` §4.1.
+- **Interval check-off is session-scoped.** Ticks live in view state and reset
+  when you leave the screen. Persisting them needs a schema bump plus migration
+  fixtures (§28.22), so it was deliberately not half-shipped. It is optional and
+  nothing depends on it.
+- **Training zones remain RPE-only.** Heart-rate, power, pace and swim-pace zone
+  editing is a later update. The app is fully usable without sensors.
+- **Localization ships English only.** The infrastructure is in place — String
+  Catalog, domain enums resolving through it, tests matching identifiers rather
+  than text — so adding a language is now translation, not code.
+- **Weekly progress is hidden on Today at accessibility text sizes.** Deliberate:
+  the header otherwise consumed the whole screen and pushed every session off
+  it. Progress remains on its own tab.
+
+Closed in the refinement pass: accessibility identifiers (79), the permissive
+smoke tests, the String Catalog, haptics, app-icon artwork, plan filtering,
+screenshots, and the preferred long-ride / long-run / rest-day transform that
+onboarding previously collected and ignored.
 
 ---
 
 ## Next steps (prioritized)
 
-1. **Stand up the Xcode project** — `xcodegen generate`, resolve any
-   environment‑specific compile issues, run on Simulator and a physical iPhone.
-2. **Implement SwiftData persistence + the six screens** (Onboarding, Today,
-   Plan, Workout Detail, Progress, Settings) against the verified domain services
-   — see `UX_SPEC.md`.
-3. **Wire the notification bridge** — `UNUserNotificationCenter` adapter over the
-   tested `NotificationPlanner` (rolling ≤64 window, cancellation on completion,
-   deep links).
-4. **UI tests & accessibility** — XCUITest for the core flows plus Dynamic Type
-   and VoiceOver identifier checks (see `QA_CHECKLIST.md`).
-5. **Capture screenshots / preview snapshots** for the deliverables list.
-6. **Release 2** — HealthKit + Apple Watch + Widgets, each behind its protocol,
-   with **migration tests** added before any schema change (see `CHANGELOG.md`,
-   `CAPABILITIES.md`).
+1. **Verify notifications on a physical iPhone** — the only item blocking
+   Release 1. Connect a device, set a development team and unique bundle id,
+   enable a reminder category with a near-future time, background the app, and
+   confirm delivery, non-duplication, cancellation after completion, and that a
+   tap opens the correct session.
+2. **Run the manual columns of `QA_CHECKLIST.md`** that automation cannot cover:
+   Airplane Mode, device reboot, live time-zone change, and a real DST boundary.
+3. **Decide on persisting interval check-off.** If yes, bump the schema and add
+   migration fixtures first (§28.22).
+4. **Then** Release 2 — HealthKit, watchOS, WorkoutKit, Live Activities,
+   Widgets, App Intents. `RELEASE_1_VERIFICATION.md` §7 confirms the current
+   schema supports all of them without a destructive rewrite.

@@ -34,12 +34,16 @@ struct RescheduleSheet: View {
             Form {
                 Section {
                     DatePicker("New day", selection: $newDate, displayedComponents: .date)
+                        .accessibilityIdentifier(A11y.Reschedule.datePicker)
                 }
                 if warnings.isEmpty {
                     Section {
+                        // Symbol + wording carry the meaning; the tint is only a
+                        // reinforcement (Differentiate Without Color).
                         Label("No conflicts on that day.", systemImage: "checkmark.circle")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(.secondary)
                     }
+                    .accessibilityIdentifier(A11y.Reschedule.warnings)
                 } else {
                     Section("Worth considering") {
                         ForEach(warnings) { w in
@@ -50,8 +54,10 @@ struct RescheduleSheet: View {
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             .padding(.vertical, 2)
+                            .accessibilityElement(children: .combine)
                         }
                     }
+                    .accessibilityIdentifier(A11y.Reschedule.warnings)
                 }
                 Section {
                     Text("Moving a session never stacks it onto a hard day automatically. Consistency matters more than any single workout.")
@@ -61,9 +67,13 @@ struct RescheduleSheet: View {
             .navigationTitle("Reschedule")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .accessibilityIdentifier(A11y.Reschedule.cancel)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Move") { Task { await onConfirm(newDate); dismiss() } }
+                        .accessibilityIdentifier(A11y.Reschedule.confirm)
                 }
             }
         }

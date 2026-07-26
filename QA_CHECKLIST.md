@@ -13,6 +13,26 @@ Mark each item pass/fail; file a note for every fail.
 
 ---
 
+
+> **Automation coverage (2026-07-26).** Much of the matrix below is now enforced
+> by tests and no longer needs to be walked by hand every build:
+>
+> | Row | Covered by |
+> |---|---|
+> | Light Mode · Dark Mode | `AccessibilityMatrixTests` + captured screenshots |
+> | Largest / smallest Dynamic Type | `AccessibilityMatrixTests` (found and fixed a real defect) |
+> | Reduce Motion · Increased Contrast · Differentiate Without Color · Bold Text | `AccessibilityMatrixTests` |
+> | Small / large iPhone | acceptance suite on iPhone 17e and 17 Pro Max |
+> | App relaunch (completion + rescheduling persist) | `EnduranceUITests` |
+> | Fresh install | every UI test launches with `-uiTestFreshInstall` |
+> | VoiceOver labels | asserted in `AccessibilityMatrixTests` |
+> | Export re-imports | `EnduranceUITests` + the in-app export summary |
+>
+> **Still manual, and still required:** physical device, notification permission
+> and delivery, notification taps, Airplane Mode, device reboot, a live
+> time-zone change, and a real DST boundary. See `RELEASE_1_VERIFICATION.md` §4.
+
+
 ## 1. Environments & display configurations
 
 - [ ] Runs on a **physical iPhone** (not just Simulator).

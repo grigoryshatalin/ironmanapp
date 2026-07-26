@@ -6,6 +6,11 @@ import EnduranceDomain
 /// All *decisions* (which reminders exist, their stable ids, the rolling ≤64
 /// window) live in the domain and are unit-tested; this class only performs the
 /// side effects and handles taps.
+/// Main-actor isolated: it is owned by the main-actor `AppEnvironment`, and the
+/// class holds non-`Sendable` state (`deepLinkHandler`). Without this, awaiting
+/// `sync` from the main actor would send a non-`Sendable` value across an
+/// isolation boundary.
+@MainActor
 final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
     private let center = UNUserNotificationCenter.current()
     private let planner = NotificationPlanner()
@@ -112,15 +117,18 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
 
     // MARK: - UNUserNotificationCenterDelegate
 
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+    // `UNUserNotificationCenterDelegate` is not `@MainActor` and its parameters are
+    // non-`Sendable`, so these witnesses stay `nonisolated` and hop to the main
+    // actor themselves rather than forcing the system to send them here.
+
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         [.banner, .sound, .list]
     }
 
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        let userInfo = response.notification.request.content.userInfo
-        if let path = userInfo["deepLink"] as? String, let link = DeepLink(path: path) {
-            let handler = deepLinkHandler
-            await MainActor.run { handler?(link) }
-        }
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        // Read what we need before crossing the boundary — `response` is not Sendable.
+        let path = response.notification.request.content.userInfo["deepLink"] as? String
+        guard let path, let link = DeepLink(path: path) else { return }
+        await MainActor.run { self.deepLinkHandler?(link) }
     }
 }
