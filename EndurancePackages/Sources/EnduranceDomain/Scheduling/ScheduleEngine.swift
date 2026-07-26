@@ -99,21 +99,33 @@ public struct ScheduleEngine: Sendable {
         result.reserveCapacity(plan.weeks.reduce(0) { $0 + $1.days.reduce(0) { $0 + $1.workouts.count } })
 
         for week in plan.weeks.sorted(by: { $0.weekNumber < $1.weekNumber }) {
+            // Honour the athlete's preferred long-ride / long-run / rest days by
+            // permuting whole days within the week (§7). Identity layout when no
+            // preference was expressed, so the plan's own rhythm is used as-is.
+            let layout = WeekdayLayout.make(for: week, config: config)
+            let weekFirstDayIndex = (week.weekNumber - 1) * 7
+
             for day in week.days.sorted(by: { $0.weekdayOffset < $1.weekdayOffset }) {
-                let dayDate = date(forDayIndex: day.dayIndex, startDay: start, config: config)
+                let effectiveOffset = layout.destination(for: day.weekdayOffset)
+                let effectiveDayIndex = weekFirstDayIndex + effectiveOffset
+                let dayDate = date(forDayIndex: effectiveDayIndex, startDay: start, config: config)
                 for template in day.workouts.sorted(by: { $0.order < $1.order }) {
                     let startInstant = plannedStart(dayDate: dayDate, template: template, config: config)
                     let identity = WorkoutIdentity(
                         planID: plan.id,
                         templateID: template.id,
+                        // Derived from the plan's CANONICAL day index, not the
+                        // permuted one, so a workout keeps its identity — and its
+                        // completion history — if the athlete later changes which
+                        // weekday carries the long ride (§28.2).
                         scheduledWorkoutID: deterministicScheduledID(planID: plan.id, templateID: template.id, dayIndex: day.dayIndex),
                         externalReferences: []
                     )
                     let scheduled = ScheduledWorkout(
                         identity: identity,
                         weekNumber: week.weekNumber,
-                        weekdayOffset: day.weekdayOffset,
-                        dayIndex: day.dayIndex,
+                        weekdayOffset: effectiveOffset,
+                        dayIndex: effectiveDayIndex,
                         order: template.order,
                         sport: template.sport,
                         title: template.title,

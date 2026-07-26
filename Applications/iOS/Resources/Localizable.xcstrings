@@ -1,0 +1,762 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "completionsource.appTimer": {
+      "comment": "Where a completion record came from.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In-app timer"
+          }
+        }
+      }
+    },
+    "completionsource.appleWatch": {
+      "comment": "Where a completion record came from.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Watch"
+          }
+        }
+      }
+    },
+    "completionsource.external": {
+      "comment": "Where a completion record came from.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imported"
+          }
+        }
+      }
+    },
+    "completionsource.healthKit": {
+      "comment": "Where a completion record came from.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Health"
+          }
+        }
+      }
+    },
+    "completionsource.manual": {
+      "comment": "Where a completion record came from.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Logged manually"
+          }
+        }
+      }
+    },
+    "intensity.endurance": {
+      "comment": "Training intensity zone.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endurance"
+          }
+        }
+      }
+    },
+    "intensity.raceEffort": {
+      "comment": "Training intensity zone.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Race effort"
+          }
+        }
+      }
+    },
+    "intensity.recovery": {
+      "comment": "Training intensity zone.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovery"
+          }
+        }
+      }
+    },
+    "intensity.tempo": {
+      "comment": "Training intensity zone.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tempo"
+          }
+        }
+      }
+    },
+    "intensity.threshold": {
+      "comment": "Training intensity zone.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Threshold"
+          }
+        }
+      }
+    },
+    "intensity.variable": {
+      "comment": "Training intensity zone.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Variable"
+          }
+        }
+      }
+    },
+    "intensity.vo2": {
+      "comment": "Training intensity zone.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VO₂"
+          }
+        }
+      }
+    },
+    "modification.adaptation": {
+      "comment": "An entry in a workout's modification history.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adapted"
+          }
+        }
+      }
+    },
+    "modification.note": {
+      "comment": "An entry in a workout's modification history.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note added"
+          }
+        }
+      }
+    },
+    "modification.replaceWithRecovery": {
+      "comment": "An entry in a workout's modification history.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replaced with recovery"
+          }
+        }
+      }
+    },
+    "modification.reschedule": {
+      "comment": "An entry in a workout's modification history.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescheduled"
+          }
+        }
+      }
+    },
+    "modification.restore": {
+      "comment": "An entry in a workout's modification history.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restored"
+          }
+        }
+      }
+    },
+    "modification.shorten": {
+      "comment": "An entry in a workout's modification history.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortened"
+          }
+        }
+      }
+    },
+    "modification.skip": {
+      "comment": "An entry in a workout's modification history.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skipped"
+          }
+        }
+      }
+    },
+    "notifcategory.fueling": {
+      "comment": "A category of local reminder the athlete can enable.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Long-session fueling"
+          }
+        }
+      }
+    },
+    "notifcategory.preparation": {
+      "comment": "A category of local reminder the athlete can enable.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparation (evening before)"
+          }
+        }
+      }
+    },
+    "notifcategory.recovery": {
+      "comment": "A category of local reminder the athlete can enable.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovery check"
+          }
+        }
+      }
+    },
+    "notifcategory.secondReminder": {
+      "comment": "A category of local reminder the athlete can enable.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Second reminder"
+          }
+        }
+      }
+    },
+    "notifcategory.weeklyReview": {
+      "comment": "A category of local reminder the athlete can enable.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weekly review"
+          }
+        }
+      }
+    },
+    "notifcategory.workout": {
+      "comment": "A category of local reminder the athlete can enable.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Workout reminders"
+          }
+        }
+      }
+    },
+    "sport.bike": {
+      "comment": "Name of a training sport.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bike"
+          }
+        }
+      }
+    },
+    "sport.brick": {
+      "comment": "Name of a training sport.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brick"
+          }
+        }
+      }
+    },
+    "sport.mobility": {
+      "comment": "Name of a training sport.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mobility"
+          }
+        }
+      }
+    },
+    "sport.race": {
+      "comment": "Name of a training sport.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Race"
+          }
+        }
+      }
+    },
+    "sport.recovery": {
+      "comment": "Name of a training sport.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovery"
+          }
+        }
+      }
+    },
+    "sport.run": {
+      "comment": "Name of a training sport.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run"
+          }
+        }
+      }
+    },
+    "sport.strength": {
+      "comment": "Name of a training sport.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Strength"
+          }
+        }
+      }
+    },
+    "sport.swim": {
+      "comment": "Name of a training sport.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swim"
+          }
+        }
+      }
+    },
+    "status.completed": {
+      "comment": "Status of a scheduled workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completed"
+          }
+        }
+      }
+    },
+    "status.inProgress": {
+      "comment": "Status of a scheduled workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In progress"
+          }
+        }
+      }
+    },
+    "status.partiallyCompleted": {
+      "comment": "Status of a scheduled workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partially completed"
+          }
+        }
+      }
+    },
+    "status.planned": {
+      "comment": "Status of a scheduled workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Planned"
+          }
+        }
+      }
+    },
+    "status.replaced": {
+      "comment": "Status of a scheduled workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replaced"
+          }
+        }
+      }
+    },
+    "status.rescheduled": {
+      "comment": "Status of a scheduled workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescheduled"
+          }
+        }
+      }
+    },
+    "status.skipped": {
+      "comment": "Status of a scheduled workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skipped"
+          }
+        }
+      }
+    },
+    "step.cooldown": {
+      "comment": "A step within a structured workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cool-down"
+          }
+        }
+      }
+    },
+    "step.drill": {
+      "comment": "A step within a structured workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drill"
+          }
+        }
+      }
+    },
+    "step.recovery": {
+      "comment": "A step within a structured workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovery"
+          }
+        }
+      }
+    },
+    "step.rest": {
+      "comment": "A step within a structured workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rest"
+          }
+        }
+      }
+    },
+    "step.steady": {
+      "comment": "A step within a structured workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steady"
+          }
+        }
+      }
+    },
+    "step.transition": {
+      "comment": "A step within a structured workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transition"
+          }
+        }
+      }
+    },
+    "step.warmup": {
+      "comment": "A step within a structured workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warm-up"
+          }
+        }
+      }
+    },
+    "step.work": {
+      "comment": "A step within a structured workout.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Work"
+          }
+        }
+      }
+    },
+    "stress.easy": {
+      "comment": "How demanding a session is.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Easy"
+          }
+        }
+      }
+    },
+    "stress.hard": {
+      "comment": "How demanding a session is.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hard"
+          }
+        }
+      }
+    },
+    "stress.long": {
+      "comment": "How demanding a session is.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Long"
+          }
+        }
+      }
+    },
+    "stress.moderate": {
+      "comment": "How demanding a session is.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moderate"
+          }
+        }
+      }
+    },
+    "stress.raceSpecific": {
+      "comment": "How demanding a session is.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Race-specific"
+          }
+        }
+      }
+    },
+    "stress.recovery": {
+      "comment": "How demanding a session is.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovery"
+          }
+        }
+      }
+    },
+    "units.imperial": {
+      "comment": "Measurement system choice.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imperial (mi · yd)"
+          }
+        }
+      }
+    },
+    "units.metric": {
+      "comment": "Measurement system choice.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metric (km · m)"
+          }
+        }
+      }
+    },
+    "units.mixedTriathlon": {
+      "comment": "Measurement system choice.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Triathlon (mi · m)"
+          }
+        }
+      }
+    },
+    "weekload.base": {
+      "comment": "Load designation for a training week.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base"
+          }
+        }
+      }
+    },
+    "weekload.build": {
+      "comment": "Load designation for a training week.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Build"
+          }
+        }
+      }
+    },
+    "weekload.peak": {
+      "comment": "Load designation for a training week.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peak"
+          }
+        }
+      }
+    },
+    "weekload.race": {
+      "comment": "Load designation for a training week.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Race"
+          }
+        }
+      }
+    },
+    "weekload.recovery": {
+      "comment": "Load designation for a training week.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recovery"
+          }
+        }
+      }
+    },
+    "weekload.taper": {
+      "comment": "Load designation for a training week.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taper"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

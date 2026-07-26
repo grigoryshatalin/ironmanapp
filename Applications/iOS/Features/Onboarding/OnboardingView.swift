@@ -33,6 +33,22 @@ struct OnboardingView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            // Standard back placement and affordance rather than a bespoke
+            // control in the footer (§11). The wizard has no navigation stack to
+            // pop, so this drives the step state directly while looking and
+            // reading exactly like system back.
+            .toolbar {
+                if step != .purpose {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            withAnimation { step = Step(rawValue: step.rawValue - 1) ?? .purpose }
+                        } label: {
+                            Label("Back", systemImage: "chevron.backward")
+                        }
+                        .accessibilityIdentifier(A11y.Onboarding.backButton)
+                    }
+                }
+            }
         }
     }
 
@@ -66,15 +82,20 @@ struct OnboardingView: View {
                 Text("Race date").tag(Draft.AnchorMode.raceDate)
             }
             .pickerStyle(.segmented)
+            .accessibilityIdentifier(A11y.Onboarding.anchorPicker)
 
             if draft.anchorMode == .startDate {
                 DatePicker("Start date", selection: $draft.startDate, displayedComponents: .date)
+                    .accessibilityIdentifier(A11y.Onboarding.startDatePicker)
                 LabeledContent("Race date (calculated)", value: DisplayFormatter.longDate(derivedRaceDate))
                     .foregroundStyle(.secondary)
+                    .accessibilityIdentifier(A11y.Onboarding.derivedDate)
             } else {
                 DatePicker("Race date", selection: $draft.raceDate, displayedComponents: .date)
+                    .accessibilityIdentifier(A11y.Onboarding.raceDatePicker)
                 LabeledContent("Start date (calculated)", value: DisplayFormatter.longDate(derivedStartDate))
                     .foregroundStyle(.secondary)
+                    .accessibilityIdentifier(A11y.Onboarding.derivedDate)
             }
         }
     }
@@ -84,13 +105,19 @@ struct OnboardingView: View {
             Text("Pick default times and your key days. You can change these anytime.")
                 .font(.body)
             timeRow("Weekday workout time", $draft.weekdayTime)
+                .accessibilityIdentifier(A11y.Onboarding.weekdayTime)
             timeRow("Weekend workout time", $draft.weekendTime)
+                .accessibilityIdentifier(A11y.Onboarding.weekendTime)
             weekdayPicker("Long ride day", $draft.longBikeDay)
+                .accessibilityIdentifier(A11y.Onboarding.longBikeDay)
             weekdayPicker("Long run day", $draft.longRunDay)
+                .accessibilityIdentifier(A11y.Onboarding.longRunDay)
             weekdayPicker("Rest day", $draft.restDay)
+                .accessibilityIdentifier(A11y.Onboarding.restDay)
             Picker("Units", selection: $draft.units) {
-                ForEach(MeasurementSystem.allCases, id: \.self) { Text($0.englishName).tag($0) }
+                ForEach(MeasurementSystem.allCases, id: \.self) { Text($0.localizedName).tag($0) }
             }
+            .accessibilityIdentifier(A11y.Onboarding.units)
         }
     }
 
@@ -114,8 +141,9 @@ struct OnboardingView: View {
                     get: { draft.enabledCategories.contains(cat) },
                     set: { on in if on { draft.enabledCategories.insert(cat) } else { draft.enabledCategories.remove(cat) } }
                 )) {
-                    Label(categoryTitle(cat), systemImage: cat.symbolName)
+                    Label(cat.localizedName, systemImage: cat.symbolName)
                 }
+                .accessibilityIdentifier(A11y.Onboarding.category(cat.rawValue))
             }
         }
     }
@@ -128,6 +156,7 @@ struct OnboardingView: View {
                 .font(.body)
             Toggle("I understand", isOn: $draft.acknowledgedSafety)
                 .font(.callout)
+                .accessibilityIdentifier(A11y.Onboarding.safetyAcknowledge)
         }
     }
 
@@ -135,16 +164,13 @@ struct OnboardingView: View {
 
     private var footer: some View {
         HStack {
-            if step != .purpose {
-                Button("Back") { withAnimation { step = Step(rawValue: step.rawValue - 1) ?? .purpose } }
-                    .buttonStyle(.bordered)
-            }
             Spacer()
             Button(step == .safety ? "Start training" : "Continue") {
                 advance()
             }
             .buttonStyle(.borderedProminent)
             .disabled(step == .safety && !draft.acknowledgedSafety)
+            .accessibilityIdentifier(A11y.Onboarding.continueButton)
         }
         .padding(Theme.Space.l)
         .background(.bar)
@@ -177,7 +203,11 @@ struct OnboardingView: View {
 
         do {
             try env.store.completeOnboarding(configuration: config, units: draft.units, preferences: prefs, raceName: nil, raceLocation: nil)
-            if !draft.enabledCategories.isEmpty {
+            // The system permission alert is owned by SpringBoard and cannot be
+            // dismissed reliably from XCUITest across OS versions, so tests opt
+            // out of the prompt rather than the app skipping it silently.
+            let suppressPrompt = CommandLine.arguments.contains(A11y.LaunchArgument.suppressNotificationPrompt)
+            if !draft.enabledCategories.isEmpty && !suppressPrompt {
                 _ = await env.notifications.requestAuthorization()
             }
             await env.refreshSideEffects()
@@ -240,15 +270,24 @@ struct OnboardingView: View {
     private func weekdayName(_ n: Int) -> String {
         Calendar.current.weekdaySymbols[(n - 1) % 7]
     }
-    private func categoryTitle(_ c: NotificationCategory) -> String {
-        switch c {
-        case .preparation: return "Preparation (evening before)"
-        case .workout: return "Workout reminders"
-        case .secondReminder: return "Second reminder"
-        case .fueling: return "Long-session fueling"
-        case .recovery: return "Recovery check"
-        case .weeklyReview: return "Weekly review"
+    /// Normally today, so the plan begins now. In DEBUG a launch argument can
+    /// backdate it, which is how screenshot capture lands on a specific day of
+    /// the plan (a recovery day, a two-session day) deterministically. Release
+    /// builds always start today.
+    /// `nonisolated` because it is used as a default value inside `Draft`, which
+    /// is constructed outside the main actor. It touches nothing mutable.
+    nonisolated static var defaultStartDate: Date {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        #if DEBUG
+        let args = CommandLine.arguments
+        if let flag = args.firstIndex(of: A11y.LaunchArgument.startDayOffset),
+           args.index(after: flag) < args.endIndex,
+           let offset = Int(args[args.index(after: flag)]) {
+            return calendar.date(byAdding: .day, value: -offset, to: today) ?? today
         }
+        #endif
+        return today
     }
 
     // MARK: - Draft model
@@ -256,7 +295,7 @@ struct OnboardingView: View {
     struct Draft {
         enum AnchorMode { case startDate, raceDate }
         var anchorMode: AnchorMode = .startDate
-        var startDate: Date = Calendar.current.startOfDay(for: Date())
+        var startDate: Date = OnboardingView.defaultStartDate
         var raceDate: Date = Calendar.current.date(byAdding: .day, value: 251, to: Date()) ?? Date()
         var weekdayTime: TimeOfDay = .defaultWeekday
         var weekendTime: TimeOfDay = .defaultWeekend

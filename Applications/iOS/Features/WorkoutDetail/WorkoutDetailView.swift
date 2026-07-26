@@ -13,6 +13,13 @@ struct WorkoutDetailView: View {
     private var fmt: DisplayFormatter { DisplayFormatter(units: store.units) }
 
     @State private var completing = false
+    @State private var completionTick = 0
+
+    /// Interval check-off is deliberately *optional* and session-scoped (§9):
+    /// it helps you keep your place mid-session, and carries no consequence if
+    /// ignored. Keeping it in view state rather than the store means it never
+    /// competes with completion as a source of truth, and needs no migration.
+    @State private var checkedSteps: Set<UUID> = []
 
     var body: some View {
         if let workout {
@@ -37,18 +44,24 @@ struct WorkoutDetailView: View {
                 if workout.status == .planned {
                     ToolbarItem(placement: .primaryAction) {
                         Button("Complete") { completing = true }
+                            .accessibilityIdentifier(A11y.Detail.complete)
                     }
                 }
             }
+            .haptic(.completed, trigger: completionTick)
             .sheet(isPresented: $completing) {
-                CompletionSheet(workout: workout) { completion in
-                    do { try store.complete(workout.id, completion: completion) } catch { env.alert = .dataError }
+                CompletionSheet(workout: workout, units: store.units) { completion in
+                    do { try store.complete(workout.id, completion: completion) }
+                    catch { env.alert = .dataError }
                     env.notifications.cancel(for: workout.id)
                     await env.refreshSideEffects()
+                    completionTick += 1
                 }
             }
         } else {
-            EmptyStateView(systemImage: "questionmark.circle", title: "Workout unavailable", message: "This session is no longer in your plan.")
+            EmptyStateView(systemImage: "questionmark.circle",
+                           title: "Workout unavailable",
+                           message: "This session is no longer in your plan.")
         }
     }
 
@@ -56,45 +69,63 @@ struct WorkoutDetailView: View {
 
     private func headerSection(_ w: ScheduledWorkout) -> some View {
         Section {
-            HStack(spacing: Theme.Space.m) {
-                SportBadge(sport: w.sport)
-                VStack(alignment: .leading) {
+            HStack(alignment: .top, spacing: Theme.Space.m) {
+                SportBadge(sport: w.sport, size: .detail)
+                VStack(alignment: .leading, spacing: Theme.Space.xs) {
                     Text(w.plannedStart, format: .dateTime.weekday(.wide).month().day().hour().minute())
-                        .font(.subheadline).foregroundStyle(.secondary)
-                    HStack(spacing: Theme.Space.s) {
-                        MetricPill(systemImage: "clock", text: fmt.duration(minutes: w.effectivePlannedMinutes))
-                        if let d = fmt.distance(w.plannedDistanceMeters, sport: w.sport) { MetricPill(systemImage: "ruler", text: d) }
-                        MetricPill(systemImage: "gauge.medium", text: fmt.intensity(w.intensity))
-                    }
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier(A11y.Detail.scheduledDate)
+                    MetricLine(parts: [
+                        fmt.duration(minutes: w.effectivePlannedMinutes),
+                        fmt.distance(w.plannedDistanceMeters, sport: w.sport) ?? "",
+                        fmt.intensity(w.intensity),
+                    ])
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
-            if w.status != .planned { StatusChip(status: w.status) }
+            .padding(.vertical, Theme.Space.xs)
+            if w.status != .planned {
+                StatusChip(status: w.status).accessibilityIdentifier(A11y.Detail.status)
+            }
         }
     }
 
     private func purposeSection(_ w: ScheduledWorkout) -> some View {
         Section("Purpose") {
             Text(w.objective).font(.body)
-            Label("\(w.stressCategory.englishName) session · \(fmt.rpeHint(w.intensity))", systemImage: "figure.run")
-                .font(.footnote).foregroundStyle(.secondary)
+            Label("\(w.stressCategory.localizedName) session · \(fmt.rpeHint(w.intensity))",
+                  systemImage: "figure.run")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
     }
 
-    @ViewBuilder private func stepSection(_ title: String, _ symbol: String, _ steps: [WorkoutStep]) -> some View {
+    @ViewBuilder private func stepSection(_ title: LocalizedStringKey, _ symbol: String, _ steps: [WorkoutStep]) -> some View {
         if !steps.isEmpty {
             Section {
-                ForEach(steps) { step in StepRow(step: step, fmt: fmt) }
+                ForEach(steps) { step in
+                    StepRow(step: step,
+                            fmt: fmt,
+                            isChecked: checkedSteps.contains(step.id),
+                            toggle: { toggle(step.id) })
+                }
             } header: {
                 SectionLabel(title: title, systemImage: symbol)
             }
         }
     }
 
+    private func toggle(_ id: UUID) {
+        if checkedSteps.contains(id) { checkedSteps.remove(id) } else { checkedSteps.insert(id) }
+    }
+
     @ViewBuilder private func cuesSection(_ t: WorkoutTemplate) -> some View {
         if !t.techniqueCues.isEmpty {
             Section("Technique") {
-                ForEach(t.techniqueCues, id: \.self) { Label($0, systemImage: "sparkles").font(.callout) }
+                ForEach(t.techniqueCues, id: \.self) { cue in
+                    Label(cue, systemImage: "sparkles").font(.callout)
+                }
             }
         }
     }
@@ -115,7 +146,8 @@ struct WorkoutDetailView: View {
                     if let note = h.note { Text(note).font(.footnote).foregroundStyle(.secondary) }
                 }
                 Text("Targets, not prescriptions. Practice your race-day plan; don’t overdrink.")
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -123,8 +155,15 @@ struct WorkoutDetailView: View {
     @ViewBuilder private func gearSafetySection(_ t: WorkoutTemplate) -> some View {
         if !t.gear.isEmpty || !t.safetyNotes.isEmpty {
             Section("Gear & safety") {
-                ForEach(t.gear, id: \.self) { Label($0, systemImage: "bag") }
-                ForEach(t.safetyNotes, id: \.self) { Label($0, systemImage: "exclamationmark.shield").foregroundStyle(.orange) }
+                ForEach(t.gear, id: \.self) { item in
+                    Label(item, systemImage: "bag")
+                }
+                ForEach(t.safetyNotes, id: \.self) { note in
+                    // Safety text is never color-only: the symbol and the wording
+                    // carry the meaning if color is unavailable.
+                    Label(note, systemImage: "exclamationmark.shield")
+                        .foregroundStyle(.primary)
+                }
             }
         }
     }
@@ -132,10 +171,16 @@ struct WorkoutDetailView: View {
     private func statusSection(_ w: ScheduledWorkout) -> some View {
         Section("Your session") {
             if let c = w.completion {
-                if let m = c.actualDurationMinutes { LabeledContent("Logged duration", value: fmt.duration(minutes: m)) }
-                if let rpe = c.perceivedExertion { LabeledContent("Perceived exertion", value: "\(rpe)/10") }
+                if let m = c.actualDurationMinutes {
+                    LabeledContent("Logged duration", value: fmt.duration(minutes: m))
+                }
+                if let rpe = c.perceivedExertion {
+                    LabeledContent("Perceived exertion", value: "\(rpe)/10")
+                }
                 if let notes = c.notes { LabeledContent("Notes", value: notes) }
-                Label("Source: \(c.source.rawValue)", systemImage: "square.and.pencil").font(.caption).foregroundStyle(.secondary)
+                Label(c.source.localizedName, systemImage: "square.and.pencil")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } else {
                 Text("Not logged yet.").foregroundStyle(.secondary)
             }
@@ -148,11 +193,15 @@ struct WorkoutDetailView: View {
                 ForEach(w.modifications) { m in
                     Label {
                         VStack(alignment: .leading) {
-                            Text(m.type.rawValue.capitalized)
+                            Text(m.type.localizedName)
                             Text(m.createdAt, format: .dateTime.month().day().hour().minute())
-                                .font(.caption).foregroundStyle(.secondary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
-                    } icon: { Image(systemName: "clock.arrow.circlepath") }
+                    } icon: {
+                        Image(systemName: "clock.arrow.circlepath")
+                    }
+                    .accessibilityElement(children: .combine)
                 }
             }
         }
@@ -160,44 +209,73 @@ struct WorkoutDetailView: View {
 }
 
 /// Renders one structured step, expanding repeats as "N ×".
+///
+/// The whole row is a check-off control, but nothing depends on it — a session
+/// is completed from the toolbar regardless of which steps are ticked.
 struct StepRow: View {
     let step: WorkoutStep
     let fmt: DisplayFormatter
+    var isChecked: Bool = false
+    var toggle: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.xs) {
-            HStack {
-                if step.repeats > 1 { Text("\(step.repeats) ×").font(.headline).monospacedDigit() }
-                Text(step.label).font(.body)
-                Spacer()
-                Text(goalText).font(.subheadline).foregroundStyle(.secondary).monospacedDigit()
-            }
-            if let note = step.note {
-                Text(note).font(.caption).foregroundStyle(.secondary)
-            }
-            if !step.childSteps.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(step.childSteps) { child in
-                        HStack {
-                            Text("•").foregroundStyle(.tertiary)
-                            Text(child.label).font(.callout)
-                            Spacer()
-                            Text(Self.goal(child, fmt: fmt)).font(.caption).foregroundStyle(.secondary)
+        Button {
+            toggle?()
+        } label: {
+            HStack(alignment: .top, spacing: Theme.Space.m) {
+                Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(isChecked ? Color.accentColor : Color.secondary)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                    HStack(alignment: .firstTextBaseline) {
+                        if step.repeats > 1 {
+                            Text("\(step.repeats) ×").font(.headline).monospacedDigit()
                         }
+                        Text(step.label).font(.body)
+                        Spacer(minLength: Theme.Space.s)
+                        Text(goalText)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    if let note = step.note {
+                        Text(note).font(.caption).foregroundStyle(.secondary)
+                    }
+                    if !step.childSteps.isEmpty {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(step.childSteps) { child in
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text("•").foregroundStyle(.tertiary)
+                                    Text(child.label).font(.callout)
+                                    Spacer(minLength: Theme.Space.s)
+                                    Text(Self.goal(child, fmt: fmt))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .padding(.leading, Theme.Space.m)
                     }
                 }
-                .padding(.leading, Theme.Space.m)
             }
+            .padding(.vertical, 2)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 2)
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isChecked ? [.isButton, .isSelected] : .isButton)
+        .accessibilityHint(Text("Optional. Marks this step done for your own tracking."))
+        .accessibilityIdentifier(A11y.Detail.intervalToggle(step.id.uuidString))
     }
 
     private var goalText: String { Self.goal(step, fmt: fmt) }
 
     static func goal(_ s: WorkoutStep, fmt: DisplayFormatter) -> String {
         if let sec = s.durationSeconds, sec > 0 { return fmt.duration(minutes: max(1, sec / 60)) }
-        if let m = s.distanceMeters, m > 0 { return "\(Int(m)) m" }
-        if s.isOpenGoal { return "as needed" }
+        if let m = s.distanceMeters, m > 0 { return String(localized: "\(Int(m)) m") }
+        if s.isOpenGoal { return String(localized: "as needed") }
         return ""
     }
 }

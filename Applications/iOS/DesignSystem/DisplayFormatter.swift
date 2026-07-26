@@ -15,8 +15,10 @@ struct DisplayFormatter {
     func duration(minutes: Int) -> String { f.durationString(minutes: minutes) }
 
     func intensity(_ zone: IntensityZone) -> String {
-        if let z = zone.zoneShorthand { return "\(z) · \(zone.englishName)" }
-        return zone.englishName
+        // Resolve through the String Catalog, never the domain's developer-facing
+        // English (§28.18).
+        if let z = zone.zoneShorthand { return "\(z) · \(zone.localizedName)" }
+        return zone.localizedName
     }
 
     /// A concise "RPE 3–4" hint for the sensor-free case.

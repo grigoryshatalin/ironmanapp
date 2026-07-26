@@ -223,6 +223,39 @@ final class WorkoutStore {
         self.configuration = newConfig
     }
 
+    /// Re-apply the athlete's preferred long-ride / long-run / rest days.
+    ///
+    /// Regenerates the schedule through `ScheduleEngine` — the same path
+    /// onboarding uses — then adopts only the *future, unfinished* dates.
+    /// Scheduled ids are derived from the plan's canonical day, so they are
+    /// unchanged by the new layout and completion history matches straight
+    /// across (§28.2).
+    func applyPreferredDays(_ newConfig: ScheduleConfiguration, now: Date = Date()) throws {
+        guard let plan else { return }
+        let regenerated = try engine.generateSchedule(plan: plan, config: newConfig)
+        let byID = Dictionary(uniqueKeysWithValues: regenerated.map { ($0.id, $0) })
+        let cal = newConfig.calendar
+        let today = cal.startOfDay(for: now)
+
+        for record in try context.fetch(FetchDescriptor<SDScheduledWorkout>()) {
+            var w = try record.toDomain()
+            // Never move something already done, or already in the past.
+            guard !w.status.countsAsDone, w.scheduledDate >= today else { continue }
+            guard let fresh = byID[w.id] else { continue }
+            w.scheduledDate = fresh.scheduledDate
+            w.plannedStart = fresh.plannedStart
+            w.dayIndex = fresh.dayIndex
+            w.weekdayOffset = fresh.weekdayOffset
+            try record.update(w)
+        }
+
+        let settings = try settingsRow() ?? SDAppSettings()
+        settings.configuration = newConfig
+        if settings.modelContext == nil { context.insert(settings) }
+        try context.save()
+        self.configuration = newConfig
+    }
+
     func updatePreferences(_ prefs: NotificationPreferences) throws {
         let settings = try settingsRow() ?? SDAppSettings()
         settings.preferences = prefs

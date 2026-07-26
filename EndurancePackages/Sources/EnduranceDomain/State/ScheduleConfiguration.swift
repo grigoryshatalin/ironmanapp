@@ -35,9 +35,10 @@ public struct ScheduleConfiguration: Codable, Sendable, Hashable {
     /// IANA time-zone identifier; nil means "use the device's current zone".
     public var timeZoneIdentifier: String?
 
-    // Preferred long-session / rest days (Gregorian weekday ints). Recorded now;
-    // the day-rotation transform that applies them ships incrementally. Keeping
-    // them here means enabling the feature later needs no schema change.
+    // Preferred long-session / rest days (Gregorian weekday ints, 1 = Sun … 7 =
+    // Sat). Applied by `WeekdayLayout`, which permutes whole days within each
+    // week so the plan's internal rhythm survives. `nil` means "no preference —
+    // use the plan's own layout".
     public var preferredLongBikeWeekday: Int?
     public var preferredLongRunWeekday: Int?
     public var preferredRestWeekday: Int?

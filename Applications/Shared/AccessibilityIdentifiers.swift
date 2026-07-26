@@ -1,0 +1,143 @@
+import Foundation
+
+/// Stable accessibility identifiers, compiled into **both** the app and the UI
+/// test target (see `project.yml`) so tests never match on user-facing English.
+///
+/// Identifiers are for automation only — they are never read aloud. VoiceOver
+/// uses `accessibilityLabel`, which stays localized.
+enum A11y {
+
+    enum Onboarding {
+        static let root = "onboarding.root"
+        static let progress = "onboarding.progress"
+        static let continueButton = "onboarding.continue"
+        static let backButton = "onboarding.back"
+        static let anchorPicker = "onboarding.anchor"
+        static let startDatePicker = "onboarding.startDate"
+        static let raceDatePicker = "onboarding.raceDate"
+        static let derivedDate = "onboarding.derivedDate"
+        static let weekdayTime = "onboarding.weekdayTime"
+        static let weekendTime = "onboarding.weekendTime"
+        static let longBikeDay = "onboarding.longBikeDay"
+        static let longRunDay = "onboarding.longRunDay"
+        static let restDay = "onboarding.restDay"
+        static let units = "onboarding.units"
+        static let safetyAcknowledge = "onboarding.safetyAcknowledge"
+        static func category(_ raw: String) -> String { "onboarding.category.\(raw)" }
+    }
+
+    enum Tab {
+        static let today = "tab.today"
+        static let plan = "tab.plan"
+        static let progress = "tab.progress"
+        static let settings = "tab.settings"
+    }
+
+    enum Today {
+        static let list = "today.list"
+        static let date = "today.date"
+        static let weekPhase = "today.weekPhase"
+        static let weekProgress = "today.weekProgress"
+        static let status = "today.status"
+        static let empty = "today.empty"
+        static let upNext = "today.upNext"
+        /// Row at a stable position in today's chronological list.
+        static func row(_ index: Int) -> String { "today.row.\(index)" }
+        static func rowStatus(_ index: Int) -> String { "today.row.\(index).status" }
+        static let completeAction = "today.action.complete"
+        static let rescheduleAction = "today.action.reschedule"
+        static let skipAction = "today.action.skip"
+        static let replaceAction = "today.action.replace"
+        static let undoAction = "today.action.undo"
+    }
+
+    enum Completion {
+        static let sheet = "completion.sheet"
+        static let minutes = "completion.minutes"
+        static let minutesValue = "completion.minutes.value"
+        static let logDistance = "completion.logDistance"
+        static let distance = "completion.distance"
+        static let rpe = "completion.rpe"
+        static let notes = "completion.notes"
+        static let save = "completion.save"
+        static let cancel = "completion.cancel"
+    }
+
+    enum Reschedule {
+        static let sheet = "reschedule.sheet"
+        static let datePicker = "reschedule.date"
+        static let confirm = "reschedule.confirm"
+        static let cancel = "reschedule.cancel"
+        static let warnings = "reschedule.warnings"
+    }
+
+    enum Detail {
+        static let list = "detail.list"
+        static let complete = "detail.complete"
+        static let scheduledDate = "detail.scheduledDate"
+        static let status = "detail.status"
+        static func intervalToggle(_ id: String) -> String { "detail.interval.\(id)" }
+    }
+
+    enum Plan {
+        static let list = "plan.list"
+        static let filterMenu = "plan.filter"
+        static func filterOption(_ raw: String) -> String { "plan.filter.\(raw)" }
+        static let filterClear = "plan.filter.clear"
+        static func week(_ number: Int) -> String { "plan.week.\(number)" }
+        static let weekDetailList = "plan.weekDetail.list"
+    }
+
+    enum Progress {
+        static let list = "progress.list"
+        static let durationChart = "progress.chart.duration"
+        static let empty = "progress.empty"
+    }
+
+    enum Settings {
+        static let list = "settings.list"
+        static let units = "settings.units"
+        static let planDates = "settings.planDates"
+        static let preferredDays = "settings.preferredDays"
+        static let notifications = "settings.notifications"
+        static let trainingZones = "settings.trainingZones"
+        static let export = "settings.export"
+        static let exportSummary = "settings.exportSummary"
+        static let resetHistory = "settings.resetHistory"
+        static let deleteAll = "settings.deleteAll"
+        static let version = "settings.version"
+    }
+
+    enum PlanDates {
+        static let startDate = "planDates.startDate"
+        static let apply = "planDates.apply"
+        static let longBikeDay = "planDates.longBikeDay"
+        static let longRunDay = "planDates.longRunDay"
+        static let restDay = "planDates.restDay"
+    }
+
+    enum Notifications {
+        static let list = "notifications.list"
+        static let authStatus = "notifications.authStatus"
+        static let openSettings = "notifications.openSettings"
+        static func category(_ raw: String) -> String { "notifications.category.\(raw)" }
+    }
+
+    enum Alert {
+        static let dataError = "alert.dataError"
+        static let exportFailed = "alert.exportFailed"
+    }
+
+    /// Launch arguments the UI tests use to get a deterministic app.
+    enum LaunchArgument {
+        /// Wipe persisted state so the run always begins at onboarding.
+        static let freshInstall = "-uiTestFreshInstall"
+        /// Skip the notification authorization prompt, which cannot be dismissed
+        /// reliably from XCUITest across OS versions.
+        static let suppressNotificationPrompt = "-uiTestNoNotificationPrompt"
+        /// DEBUG-only. Backdates onboarding's start date by N days so a capture
+        /// or test can land on a chosen day of the plan (e.g. a recovery day, or
+        /// a day with two sessions). Followed by an integer argument.
+        static let startDayOffset = "-uiTestStartDayOffset"
+    }
+}
