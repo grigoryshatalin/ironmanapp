@@ -70,10 +70,11 @@ Xcode 26.6 (build 17F113) with the iOS 26.5 SDK.
   36-week plan generation            swift run enduranceplan: valid, 0 warnings,
                                      byte-reproducible (git clean after re-run)
   iOS app compile                    xcodebuild build: 0 errors, 0 warnings
-  App unit tests                     4 tests, all pass
-  UI acceptance suite                7 tests, all pass — every §31 behaviour
-  Accessibility matrix               9 tests, all pass
-  Screenshot capture                 9 tests, 13 images
+  App test bundle (clean full run)   29 tests, all pass, 0 warnings
+    - app unit                       4
+    - UI acceptance                  7  (every section 31 behaviour)
+    - accessibility matrix           9
+    - screenshot capture             9  (13 images)
   Device matrix                      iPhone 17, 17 Pro, 17e (small),
                                      17 Pro Max (large) — all pass
   SwiftData persistent store         Created successfully — no in-memory
@@ -91,6 +92,25 @@ The 11 domain test suites:
   - Export / import round trips & deterministic ids
   - Bundled 36-week plan
   - Toolchain probe
+
+Two test-infrastructure findings, recorded because they change how results
+should be read:
+
+  1. WARNING COUNTS FROM INCREMENTAL BUILDS ARE NOT EVIDENCE. Intermediate runs
+     reported "0 warnings" while the UI test target actually carried 181
+     strict-concurrency warnings — XCUIElement's methods are @MainActor and the
+     test classes were not. Incremental builds were not recompiling that target,
+     so they never re-printed; they surfaced only when adding a file forced a
+     full recompile. Fixed by isolating the UI test classes to @MainActor. Read
+     build hygiene from a full `build-for-testing`.
+
+  2. THE SUITE WAS FRAGILE UNDER HOST CONTENTION. A confirmation run on a fourth
+     simulator failed two acceptance tests with XCUITest event-synthesis
+     timeouts (one took 236s against a normal 19s) while a second simulator was
+     running the app interactively. Both passed in isolation on the same device.
+     Cause was a test defect, not a product defect: the onboarding helper tapped
+     Continue five times waiting only for existence, and that button exists on
+     every step. It now waits for hittability. No product code changed.
 
 On the quality of the green: the previous UI tests were permissive — one passed
 if it found EITHER onboarding OR the Today tab, so it could not fail for any

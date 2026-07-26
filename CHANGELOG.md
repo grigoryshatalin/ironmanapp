@@ -64,6 +64,16 @@ Changed — visual refinement
 - Onboarding's footer "Back" moved to the standard navigation‑bar position.
 - **Up Next** section on genuinely quiet days (empty, all recovery, or all done).
 
+Test infrastructure
+- UI test classes isolated to `@MainActor`, clearing **181** latent
+  strict-concurrency warnings in the test target. They had never re-printed
+  because incremental builds were not recompiling that target — a reminder that
+  a warning count from an incremental build proves nothing.
+- `completeOnboarding` now waits for *hittability*, not mere existence, before
+  tapping Continue. The button exists on every onboarding step, so under
+  simulator load a tap could fire before the previous step settled. This was a
+  test defect; no product code changed in response.
+
 Migration
 - **None required.** The SwiftData schema is unchanged, and workout ids are
   derived from the plan's canonical day index, so changing preferred days moves

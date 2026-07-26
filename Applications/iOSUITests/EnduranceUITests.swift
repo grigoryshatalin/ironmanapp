@@ -7,17 +7,13 @@ import XCTest
 /// showing — i.e. they could not fail for any product reason. Everything here
 /// matches on accessibility identifiers from `A11y`, never on user-facing text,
 /// so the suite survives localization.
+@MainActor
 final class EnduranceUITests: XCTestCase {
 
-    private var app: XCUIApplication!
+    private let app = XCUIApplication()
 
     override func setUp() {
         continueAfterFailure = false
-        app = XCUIApplication()
-    }
-
-    override func tearDown() {
-        app = nil
     }
 
 
@@ -85,8 +81,10 @@ final class EnduranceUITests: XCTestCase {
 
         // Steps: purpose → schedule → structure → capability → notifications → safety.
         for step in 0..<5 {
-            XCTAssertTrue(continueButton.waitForExistence(timeout: 5),
+            XCTAssertTrue(continueButton.waitForExistence(timeout: 10),
                           "Continue missing on step \(step)", file: file, line: line)
+            XCTAssertTrue(waitUntilHittable(continueButton),
+                          "Continue not hittable on step \(step)", file: file, line: line)
             continueButton.tap()
         }
 

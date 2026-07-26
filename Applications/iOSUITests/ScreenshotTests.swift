@@ -6,13 +6,13 @@ import XCTest
 /// the right screen was reached, then attach an image. Run explicitly with
 /// `-only-testing:EnduranceUITests/ScreenshotTests`; attachments are extracted
 /// from the .xcresult bundle by `Tools/capture-screenshots.sh`.
+@MainActor
 final class ScreenshotTests: XCTestCase {
 
-    private var app: XCUIApplication!
+    private let app = XCUIApplication()
 
     override func setUp() {
         continueAfterFailure = false
-        app = XCUIApplication()
     }
 
     // MARK: - Capture
@@ -45,7 +45,10 @@ final class ScreenshotTests: XCTestCase {
     private func completeOnboarding() {
         let cont = el(A11y.Onboarding.continueButton)
         XCTAssertTrue(cont.waitForExistence(timeout: 20), "Onboarding should show.")
-        for _ in 0..<5 { cont.tap() }
+        for _ in 0..<5 {
+            XCTAssertTrue(waitUntilHittable(cont), "Continue not hittable.")
+            cont.tap()
+        }
         let ack = el(A11y.Onboarding.safetyAcknowledge)
         XCTAssertTrue(ack.waitForExistence(timeout: 10))
         ack.tap()

@@ -8,13 +8,13 @@ import XCTest
 /// i.e. that nothing is clipped away, hidden, or made unhittable. These are
 /// smoke-level guarantees; they do not replace looking at the screen, and the
 /// manual column of `QA_CHECKLIST.md` still applies.
+@MainActor
 final class AccessibilityMatrixTests: XCTestCase {
 
-    private var app: XCUIApplication!
+    private let app = XCUIApplication()
 
     override func setUp() {
         continueAfterFailure = false
-        app = XCUIApplication()
     }
 
     private func el(_ identifier: String) -> XCUIElement {
@@ -33,7 +33,10 @@ final class AccessibilityMatrixTests: XCTestCase {
     private func completeOnboarding(file: StaticString = #filePath, line: UInt = #line) {
         let cont = el(A11y.Onboarding.continueButton)
         XCTAssertTrue(cont.waitForExistence(timeout: 20), "Onboarding should show.", file: file, line: line)
-        for _ in 0..<5 { cont.tap() }
+        for _ in 0..<5 {
+            XCTAssertTrue(waitUntilHittable(cont), "Continue not hittable.")
+            cont.tap()
+        }
         let ack = el(A11y.Onboarding.safetyAcknowledge)
         XCTAssertTrue(ack.waitForExistence(timeout: 10), file: file, line: line)
         ack.tap()

@@ -95,9 +95,40 @@ VoiceOver labelling.
 
 ### 1.7 Build hygiene
 
-`xcodebuild build` — **0 errors, 0 warnings.** The only console line is
-`appintentsmetadataprocessor: No AppIntents.framework dependency found`, which is
-expected: App Intents ship in Release 2.
+`xcodebuild build-for-testing` — **0 errors, 0 warnings** across the app and all
+test targets. The only console line is `appintentsmetadataprocessor: No
+AppIntents.framework dependency found`, which is expected: App Intents ship in
+Release 2.
+
+**Correction worth recording.** Intermediate runs during this pass reported "0
+warnings" while the UI test target actually carried **181** strict-concurrency
+warnings — `XCUIElement`'s methods are `@MainActor`, and the test classes were
+not. Incremental builds were not recompiling that target, so the warnings never
+re-printed. They surfaced only when adding a file forced a full recompile. Fixed
+by isolating the three UI test classes and the shared helper to `@MainActor`, and
+by initializing the `XCUIApplication` inline rather than mutating main-actor state
+from `XCTestCase`'s nonisolated `setUp()`.
+
+The lesson generalises: **a warning count from an incremental build is not
+evidence.** Build hygiene should be read from a full `build-for-testing`.
+
+### 1.8 Test robustness
+
+A confirmation run on a fourth simulator (iPhone 17 Pro) initially failed two
+acceptance tests — `testCompletionPersistsAcrossRelaunch` and
+`testTodayShowsTodaysDateAndSessions`. Investigated rather than dismissed:
+
+- Neither failure was an assertion failure. Both were XCUITest event-synthesis
+  timeouts (`Failed to tap … Timed out while synthesizing event`), and the second
+  test took **236 s** against a normal 19 s.
+- Cause: the run overlapped with a second booted simulator running the app
+  interactively, so the host was contended.
+- Both passed in isolation on the same device, at normal timings.
+
+This was a **test defect, not a product defect**: `completeOnboarding` tapped
+Continue five times waiting only for *existence*, and that button exists on every
+step — so under load a tap could fire before the previous step had settled. The
+helper now waits for hittability. No product code was changed in response.
 
 ---
 
