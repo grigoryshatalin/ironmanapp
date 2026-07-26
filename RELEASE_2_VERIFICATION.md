@@ -27,7 +27,16 @@ Recorded per §A before any Release 2 production code was written.
 | Accessibility matrix | 9 | 9 |
 | Screenshot capture | 9 | 9 |
 | **App target total** | **29** | **66** |
-| Warnings (clean `build-for-testing`) | 0 | **0** |
+| Warnings (clean `build-for-testing`, **all targets**) | 0 | **0** |
+
+> **Correction.** An earlier Stage 3 report claimed zero warnings on the basis of
+> `xcodebuild build`, which compiles the **app target only**. A full
+> `build-for-testing` then surfaced **31** strict-concurrency warnings in the
+> test targets — `XCTestCase`'s throwing `setUp`/`tearDown` are nonisolated and
+> were mutating main-actor state. Converted to the `async` variants, which
+> inherit the class's `@MainActor` isolation. This is the second time in this
+> project that an incomplete build produced a misleading warning count; read
+> build hygiene from `build-for-testing`, never from `build`.
 
 New in Stage 3: 45 pure tests (eligibility, payload, ownership) and 18 app tests
 (export workflow, idempotency, orphan recovery, deletion, round trip).

@@ -16,14 +16,14 @@ final class MigrationTests: XCTestCase {
 
     private var storeURL: URL!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         let directory = URL.temporaryDirectory
             .appending(path: "endurance-migration-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         storeURL = directory.appending(path: "default.store")
     }
 
-    override func tearDownWithError() throws {
+    override func tearDown() async throws {
         let directory = storeURL.deletingLastPathComponent()
         if FileManager.default.fileExists(atPath: directory.path) {
             try FileManager.default.removeItem(at: directory)

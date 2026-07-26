@@ -65,7 +65,7 @@ final class HealthExportTests: XCTestCase {
     private var exporter: FakeExporter!
     private var coordinator: HealthExportCoordinator!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         let config = ModelConfiguration(schema: EnduranceSchema.current, isStoredInMemoryOnly: true)
         container = try ModelContainer(for: EnduranceSchema.current, configurations: [config])
         exporter = FakeExporter()
@@ -74,7 +74,7 @@ final class HealthExportTests: XCTestCase {
         coordinator.isAutoExportEnabled = true
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         coordinator = nil
         exporter = nil
         container = nil

@@ -56,7 +56,7 @@ final class HealthCoordinatorTests: XCTestCase {
     private var importer: FakeImporter!
     private var coordinator: HealthCoordinator!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         let config = ModelConfiguration(schema: EnduranceSchema.current, isStoredInMemoryOnly: true)
         container = try ModelContainer(for: EnduranceSchema.current, configurations: [config])
         workoutStore = WorkoutStore(modelContainer: container)
@@ -77,7 +77,7 @@ final class HealthCoordinatorTests: XCTestCase {
             appBundleIdentifier: "com.example.endurance")
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         coordinator = nil
         importer = nil
         workoutStore = nil
