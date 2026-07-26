@@ -91,14 +91,26 @@ extension ActiveWorkoutState {
     var localizedName: String { Localized.string(localizationKey) }
 }
 
-extension WorkoutConversion.Kind {
+extension WorkoutKitConversionOutcome {
     var localizedName: String { Localized.string(localizationKey) }
 }
 
-extension WorkoutConversion.Warning {
+extension WorkoutKitConversionWarning {
     var localizedName: String { Localized.string(localizationKey) }
 }
 
 extension WorkoutSchedulingAuthorization {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutKitScheduleStatus {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutKitSchedulingHorizon {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutKitUnsupportedReason {
     var localizedName: String { Localized.string(localizationKey) }
 }

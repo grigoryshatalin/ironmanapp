@@ -181,25 +181,40 @@ final class SDHealthAuthorizationState {
 @Model
 final class SDWorkoutKitScheduleRecord {
     var scheduledWorkoutID: UUID = UUID()
+    var templateID: UUID?
     var schedulingIdentifier: String = ""
-    var conversionKindRaw: String = ""
+    var conversionOutcomeRaw: String = ""
     var conversionVersion: Int = 0
-    var plannedDate: Date = Date.distantPast
-    var isStale: Bool = false
+    var lastScheduledStart: Date = Date.distantPast
+    var statusRaw: String = ""
+    var lastSynchronization: Date?
     var payload: Data = Data()
 
     init(domain: WorkoutKitScheduleRecord) throws {
         self.scheduledWorkoutID = domain.scheduledWorkoutID
+        self.templateID = domain.templateID
         self.schedulingIdentifier = domain.schedulingIdentifier
-        self.conversionKindRaw = domain.conversionKind.rawValue
+        self.conversionOutcomeRaw = domain.conversionOutcome.rawValue
         self.conversionVersion = domain.conversionVersion
-        self.plannedDate = domain.plannedDate
-        self.isStale = domain.isStale
+        self.lastScheduledStart = domain.lastScheduledStart
+        self.statusRaw = domain.status.rawValue
+        self.lastSynchronization = domain.lastSynchronization
         self.payload = try SDCoders.encoder.encode(domain)
     }
 
     func toDomain() throws -> WorkoutKitScheduleRecord {
         try SDCoders.decoder.decode(WorkoutKitScheduleRecord.self, from: payload)
+    }
+
+    func update(_ domain: WorkoutKitScheduleRecord) throws {
+        templateID = domain.templateID
+        schedulingIdentifier = domain.schedulingIdentifier
+        conversionOutcomeRaw = domain.conversionOutcome.rawValue
+        conversionVersion = domain.conversionVersion
+        lastScheduledStart = domain.lastScheduledStart
+        statusRaw = domain.status.rawValue
+        lastSynchronization = domain.lastSynchronization
+        payload = try SDCoders.encoder.encode(domain)
     }
 }
 

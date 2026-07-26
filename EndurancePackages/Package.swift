@@ -27,6 +27,7 @@ let package = Package(
         .library(name: "EnduranceDomain", targets: ["EnduranceDomain"]),
         .library(name: "EnduranceTrainingPlans", targets: ["EnduranceTrainingPlans"]),
         .library(name: "EnduranceHealth", targets: ["EnduranceHealth"]),
+        .library(name: "EnduranceWorkoutKit", targets: ["EnduranceWorkoutKit"]),
         .executable(name: "enduranceplan", targets: ["enduranceplan"]),
     ],
     targets: [
@@ -47,6 +48,14 @@ let package = Package(
         // the macOS host under `swift test`, with no device or entitlement.
         .target(
             name: "EnduranceHealth",
+            dependencies: ["EnduranceDomain"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        // WorkoutKit is isolated from the Foundation-only domain just like
+        // HealthKit. The adapter accepts the domain's pure representation and
+        // is compiled only where the framework is present.
+        .target(
+            name: "EnduranceWorkoutKit",
             dependencies: ["EnduranceDomain"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),

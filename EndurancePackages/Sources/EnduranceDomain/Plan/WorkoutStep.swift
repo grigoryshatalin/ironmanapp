@@ -15,6 +15,18 @@ public enum StepKind: String, Codable, CaseIterable, Sendable, Hashable {
     public var localizationKey: String { "step.\(rawValue)" }
 }
 
+/// An explicitly authored numeric target. The plan currently uses RPE by
+/// default, so this is intentionally optional: a numeric alert exists only
+/// when a plan or a future athlete setting has supplied real values.
+public enum WorkoutTarget: Codable, Sendable, Hashable {
+    case heartRate(bpm: ClosedRange<Double>)
+    /// Metres per second. Pace is converted to this only when an explicit pace
+    /// range is supplied by authored plan data or a future zone setting.
+    case speed(metresPerSecond: ClosedRange<Double>)
+    case power(watts: ClosedRange<Double>)
+    case cadence(rpm: ClosedRange<Double>)
+}
+
 /// One node of a structured workout. Recursive: a node with `repeats > 1` and
 /// non-empty `childSteps` represents a repeated block, e.g.
 /// `4 × (6 min Zone 3 + 3 min easy)`.
@@ -32,6 +44,9 @@ public struct WorkoutStep: Codable, Sendable, Hashable, Identifiable {
     public var distanceMeters: Double?
     public var isOpenGoal: Bool
     public var intensity: IntensityZone?
+    /// Never inferred from an RPE/Zone label. Nil means the step has no numeric
+    /// sensor target that WorkoutKit may turn into an alert.
+    public var target: WorkoutTarget?
     /// Number of times to perform this node (and its `childSteps`). 1 = once.
     public var repeats: Int
     /// The repeated sub-sequence when this node is a repeat block.
@@ -46,6 +61,7 @@ public struct WorkoutStep: Codable, Sendable, Hashable, Identifiable {
         distanceMeters: Double? = nil,
         isOpenGoal: Bool = false,
         intensity: IntensityZone? = nil,
+        target: WorkoutTarget? = nil,
         repeats: Int = 1,
         childSteps: [WorkoutStep] = [],
         note: String? = nil
@@ -57,6 +73,7 @@ public struct WorkoutStep: Codable, Sendable, Hashable, Identifiable {
         self.distanceMeters = distanceMeters
         self.isOpenGoal = isOpenGoal
         self.intensity = intensity
+        self.target = target
         self.repeats = repeats
         self.childSteps = childSteps
         self.note = note

@@ -1,119 +1,200 @@
 import Foundation
 
-/// The framework-neutral result of converting an Endurance session into a
-/// structured, schedulable workout (§I).
-///
-/// The central requirement is honesty: a conversion that quietly drops intervals
-/// is worse than no conversion at all, because the athlete would train the wrong
-/// session believing it matched the plan. So every conversion states exactly
-/// what survived, and `unsupported` is a first-class, non-failing outcome.
-public struct WorkoutConversion: Codable, Sendable, Hashable, Identifiable {
+// MARK: - Framework-independent WorkoutKit representation
 
-    public enum Kind: String, Codable, Sendable, Hashable, CaseIterable {
-        /// Every step, goal and target is representable.
-        case exact
-        /// Representable, but something was flattened or dropped. Requires
-        /// explicit user confirmation before scheduling (§I).
-        case simplified
-        /// Not representable. Endurance keeps the full session; nothing is
-        /// scheduled to the Workout app.
-        case unsupported
+/// The observable fidelity of a WorkoutKit conversion. It deliberately says
+/// nothing about authorization or whether the framework call succeeded.
+public enum WorkoutKitConversionOutcome: String, Codable, Sendable, Hashable, CaseIterable {
+    case exact
+    case simplified
+    case unsupported
 
-        public var localizationKey: String { "conversion.\(rawValue)" }
+    public var localizationKey: String { "workoutkit.conversion.\(rawValue)" }
+    public var requiresConfirmation: Bool { self == .simplified }
+    public var isSchedulable: Bool { self != .unsupported }
+}
 
-        /// Only exact conversions may be scheduled without asking.
-        public var requiresConfirmation: Bool { self == .simplified }
-        public var isSchedulable: Bool { self != .unsupported }
-    }
+public enum WorkoutKitGoalRepresentation: Codable, Sendable, Hashable {
+    case open
+    case time(seconds: Int)
+    case distance(metres: Double)
+    case poolDistanceWithTime(metres: Double, seconds: Int)
+}
 
-    /// What a conversion had to give up, stated concretely.
-    public enum Warning: String, Codable, Sendable, Hashable, CaseIterable {
-        case repeatsFlattened
-        case nestedStepsFlattened
-        case intensityTargetDropped
-        case paceAlertUnsupported
-        case powerAlertUnsupported
-        case cadenceAlertUnsupported
-        case openGoalApproximated
-        case multisportTransitionsApproximated
-        case distanceGoalConvertedToTime
-        case customStepLabelsDropped
+public enum WorkoutKitAlertRepresentation: Codable, Sendable, Hashable {
+    case heartRate(bpm: ClosedRange<Double>)
+    case speed(metresPerSecond: ClosedRange<Double>)
+    case power(watts: ClosedRange<Double>)
+    case cadence(rpm: ClosedRange<Double>)
+}
 
-        public var localizationKey: String { "conversionwarning.\(rawValue)" }
-    }
+public struct WorkoutKitStepRepresentation: Codable, Sendable, Hashable, Identifiable {
+    public enum Purpose: String, Codable, Sendable, Hashable { case work, recovery }
 
     public var id: UUID
-    /// Always the Endurance identity — never a WorkoutKit id (§A: framework ids
-    /// must not become the primary local identity).
+    public var purpose: Purpose?
+    public var goal: WorkoutKitGoalRepresentation
+    public var alert: WorkoutKitAlertRepresentation?
+    /// Uses the real Endurance label and RPE guidance as text; it is never a
+    /// fabricated numeric alert.
+    public var displayName: String?
+    /// RPE is presentation guidance, not a synthetic sensor alert. The adapter
+    /// resolves its localized text when a current SDK supports step names.
+    public var perceivedExertionRange: ClosedRange<Int>?
+
+    public init(
+        id: UUID = UUID(),
+        purpose: Purpose? = nil,
+        goal: WorkoutKitGoalRepresentation,
+        alert: WorkoutKitAlertRepresentation? = nil,
+        displayName: String? = nil,
+        perceivedExertionRange: ClosedRange<Int>? = nil
+    ) {
+        self.id = id
+        self.purpose = purpose
+        self.goal = goal
+        self.alert = alert
+        self.displayName = displayName
+        self.perceivedExertionRange = perceivedExertionRange
+    }
+}
+
+public struct WorkoutKitIntervalBlock: Codable, Sendable, Hashable, Identifiable {
+    public var id: UUID
+    public var steps: [WorkoutKitStepRepresentation]
+    public var iterations: Int
+
+    public init(id: UUID = UUID(), steps: [WorkoutKitStepRepresentation], iterations: Int = 1) {
+        self.id = id
+        self.steps = steps
+        self.iterations = max(1, iterations)
+    }
+}
+
+public enum WorkoutKitActivityRepresentation: String, Codable, Sendable, Hashable {
+    case running
+    case cycling
+    case swimming
+}
+
+public enum WorkoutKitLocationRepresentation: String, Codable, Sendable, Hashable {
+    case unknown
+    case indoor
+    case outdoor
+    case pool
+    case openWater
+}
+
+public enum WorkoutKitWorkoutRepresentation: Codable, Sendable, Hashable {
+    case singleGoal(
+        activity: WorkoutKitActivityRepresentation,
+        location: WorkoutKitLocationRepresentation,
+        goal: WorkoutKitGoalRepresentation
+    )
+    case custom(
+        activity: WorkoutKitActivityRepresentation,
+        location: WorkoutKitLocationRepresentation,
+        displayName: String,
+        warmup: WorkoutKitStepRepresentation?,
+        blocks: [WorkoutKitIntervalBlock],
+        cooldown: WorkoutKitStepRepresentation?
+    )
+    /// WorkoutKit can represent activity ordering only. Endurance currently
+    /// refuses structured bricks/races rather than presenting this as a full
+    /// representation of their transitions or legs.
+    case swimBikeRun(activities: [WorkoutKitMultisportActivity], displayName: String)
+}
+
+public enum WorkoutKitMultisportActivity: Codable, Sendable, Hashable {
+    case swimming(location: WorkoutKitLocationRepresentation)
+    case cycling(location: WorkoutKitLocationRepresentation)
+    case running(location: WorkoutKitLocationRepresentation)
+}
+
+public enum WorkoutKitConversionWarning: String, Codable, Sendable, Hashable, CaseIterable {
+    case supplementalInstructionsRemainInEndurance
+    case techniqueCuesRemainInEndurance
+    case fuelingInstructionsRemainInEndurance
+    case transitionInstructionsOmitted
+    case nestedRepetitionsFlattened
+    case stepsCombined
+    case drillRepresentedAsWork
+    case shortenedWorkoutUsesSingleGoal
+    case rpePreservedAsText
+
+    public var localizationKey: String { "workoutkit.warning.\(rawValue)" }
+}
+
+public enum WorkoutKitUnsupportedReason: String, Codable, Sendable, Hashable, CaseIterable {
+    case unsupportedSport
+    case brickRequiresLinkedComponents
+    case raceRequiresStructuredMultisport
+    case nestedRepetitions
+    case invalidWorkoutStructure
+    case unsupportedGoal
+    case unsupportedAlert
+    case missingTemplate
+    case noSchedulableGoal
+
+    public var localizationKey: String { "workoutkit.unsupported.\(rawValue)" }
+}
+
+/// One explicit, never-nil answer from the pure converter.
+public struct WorkoutKitConversionResult: Codable, Sendable, Hashable, Identifiable {
+    public var id: UUID
     public var scheduledWorkoutID: UUID
-    public var kind: Kind
-    public var warnings: [Warning]
-    /// Human-readable names of fields that could not be represented.
-    public var unsupportedFields: [String]
-    /// Incremented when converter behaviour changes, so previously scheduled
-    /// workouts can be detected as stale and refreshed.
+    public var templateID: UUID?
+    public var sport: Sport
     public var conversionVersion: Int
-    public var lastScheduledAt: Date?
+    public var outcome: WorkoutKitConversionOutcome
+    public var representation: WorkoutKitWorkoutRepresentation?
+    public var warnings: [WorkoutKitConversionWarning]
+    public var unsupportedReasons: [WorkoutKitUnsupportedReason]
+    /// Stable catalog keys; framework-free code never manufactures English UI
+    /// copy. The app resolves these with the String Catalog.
+    public var explanationKeys: [String]
+    public var requiresUserConfirmation: Bool
+    public var automaticSchedulingAllowed: Bool
 
     public init(
         id: UUID = UUID(),
         scheduledWorkoutID: UUID,
-        kind: Kind,
-        warnings: [Warning] = [],
-        unsupportedFields: [String] = [],
-        conversionVersion: Int = WorkoutConversion.currentVersion,
-        lastScheduledAt: Date? = nil
+        templateID: UUID?,
+        sport: Sport,
+        conversionVersion: Int = WorkoutKitConversionResult.currentVersion,
+        outcome: WorkoutKitConversionOutcome,
+        representation: WorkoutKitWorkoutRepresentation?,
+        warnings: [WorkoutKitConversionWarning] = [],
+        unsupportedReasons: [WorkoutKitUnsupportedReason] = []
     ) {
         self.id = id
         self.scheduledWorkoutID = scheduledWorkoutID
-        self.kind = kind
-        self.warnings = warnings
-        self.unsupportedFields = unsupportedFields
+        self.templateID = templateID
+        self.sport = sport
         self.conversionVersion = conversionVersion
-        self.lastScheduledAt = lastScheduledAt
+        self.outcome = outcome
+        self.representation = representation
+        self.warnings = warnings
+        self.unsupportedReasons = unsupportedReasons
+        self.explanationKeys = (warnings.map(\.localizationKey) + unsupportedReasons.map(\.localizationKey))
+        self.requiresUserConfirmation = outcome.requiresConfirmation
+        self.automaticSchedulingAllowed = outcome == .exact
     }
 
-    /// Bump whenever conversion output changes meaningfully.
-    public static let currentVersion = 1
+    public static let currentVersion = 2
 
-    /// An exact conversion may never carry warnings — that combination would be
-    /// a lie about fidelity, so it is normalized at construction.
-    public static func exact(scheduledWorkoutID: UUID) -> WorkoutConversion {
-        WorkoutConversion(scheduledWorkoutID: scheduledWorkoutID, kind: .exact)
+    /// Stable enough to gate a previously approved simplification. It includes
+    /// every persisted conversion field, not the conversion's random record ID.
+    public var fingerprint: String {
+        let warningPart = warnings.map(\.rawValue).sorted().joined(separator: ",")
+        let unsupportedPart = unsupportedReasons.map(\.rawValue).sorted().joined(separator: ",")
+        return "\(scheduledWorkoutID.uuidString)|\(conversionVersion)|\(outcome.rawValue)|\(warningPart)|\(unsupportedPart)"
     }
-
-    public static func simplified(
-        scheduledWorkoutID: UUID,
-        warnings: [Warning],
-        unsupportedFields: [String] = []
-    ) -> WorkoutConversion {
-        // A "simplified" conversion with nothing lost is really an exact one.
-        guard !warnings.isEmpty || !unsupportedFields.isEmpty else {
-            return .exact(scheduledWorkoutID: scheduledWorkoutID)
-        }
-        return WorkoutConversion(
-            scheduledWorkoutID: scheduledWorkoutID,
-            kind: .simplified,
-            warnings: warnings,
-            unsupportedFields: unsupportedFields)
-    }
-
-    public static func unsupported(
-        scheduledWorkoutID: UUID,
-        reason: [String]
-    ) -> WorkoutConversion {
-        WorkoutConversion(
-            scheduledWorkoutID: scheduledWorkoutID,
-            kind: .unsupported,
-            unsupportedFields: reason)
-    }
-
-    /// True when a stored conversion predates the current converter.
-    public var isStale: Bool { conversionVersion < Self.currentVersion }
 }
 
-/// The structured content a conversion reads: the plan's own step tree, lifted
-/// out of `WorkoutTemplate` so the converter does not need the whole template.
+/// Compatibility spelling retained for the previously declared service seam.
+public typealias WorkoutConversion = WorkoutKitConversionResult
+
 public struct WorkoutStructure: Sendable, Hashable {
     public var warmup: [WorkoutStep]
     public var mainSet: [WorkoutStep]
@@ -125,14 +206,409 @@ public struct WorkoutStructure: Sendable, Hashable {
         self.cooldown = cooldown
     }
 
-    public var allSteps: [WorkoutStep] { warmup + mainSet + cooldown }
-    public var isEmpty: Bool { allSteps.isEmpty }
+    public init(template: WorkoutTemplate) {
+        self.init(warmup: template.warmup, mainSet: template.mainSet, cooldown: template.cooldown)
+    }
+}
 
-    /// A session with no structured steps converts to a simple single-goal
-    /// workout rather than an interval workout.
-    public var isSingleGoal: Bool { isEmpty }
+// MARK: - Pure conversion policy
 
-    /// Nested children are the main thing WorkoutKit cannot always express.
-    public var hasNestedSteps: Bool { allSteps.contains { !$0.childSteps.isEmpty } }
-    public var hasRepeats: Bool { allSteps.contains { $0.repeats > 1 } }
+/// Conservative conversion policy. It knows Endurance data only; the adapter
+/// still asks WorkoutKit whether the resulting activity/goal/alert is supported
+/// on the current device before scheduling.
+public struct WorkoutKitConverter: Sendable {
+    public init() {}
+
+    public func convert(_ workout: ScheduledWorkout, template: WorkoutTemplate?) -> WorkoutKitConversionResult {
+        guard let template else {
+            return unsupported(workout, templateID: nil, reason: .missingTemplate)
+        }
+        if workout.isBrick || template.isBrick {
+            return unsupported(workout, templateID: template.id, reason: .brickRequiresLinkedComponents)
+        }
+        if workout.sport == .race || template.sport == .race {
+            return unsupported(workout, templateID: template.id, reason: .raceRequiresStructuredMultisport)
+        }
+        guard let activity = activity(for: workout.sport) else {
+            return unsupported(workout, templateID: template.id, reason: .unsupportedSport)
+        }
+
+        var warnings = supplementalWarnings(for: template)
+        let location = location(for: template.workoutLocation)
+
+        // A user-shortened detailed session must not leave old intervals on the
+        // Watch. A truthful single time goal is safer and explicitly disclosed.
+        if workout.reducedDurationMinutes != nil {
+            warnings.append(.shortenedWorkoutUsesSingleGoal)
+            return result(
+                workout, template: template, outcome: .simplified,
+                representation: .singleGoal(activity: activity, location: location,
+                                            goal: .time(seconds: workout.effectivePlannedMinutes * 60)),
+                warnings: warnings)
+        }
+
+        let structure = WorkoutStructure(template: template)
+        if structure.warmup.isEmpty && structure.mainSet.isEmpty && structure.cooldown.isEmpty {
+            return result(
+                workout, template: template,
+                outcome: warnings.isEmpty ? .exact : .simplified,
+                representation: .singleGoal(activity: activity, location: location,
+                                            goal: baseGoal(for: workout)),
+                warnings: warnings)
+        }
+
+        if containsUnsupportedNesting(in: structure) {
+            return unsupported(workout, templateID: template.id, reason: .nestedRepetitions,
+                               warnings: warnings)
+        }
+
+        let warmup = structure.warmup.isEmpty ? nil : combinePhase(
+            structure.warmup, activity: activity, location: location,
+            warnings: &warnings)
+        let cooldown = structure.cooldown.isEmpty ? nil : combinePhase(
+            structure.cooldown, activity: activity, location: location,
+            warnings: &warnings)
+        guard (structure.warmup.isEmpty || warmup != nil),
+              (structure.cooldown.isEmpty || cooldown != nil),
+              let blocks = blocks(for: structure.mainSet, activity: activity, location: location,
+                                  warnings: &warnings) else {
+            return unsupported(workout, templateID: template.id, reason: .invalidWorkoutStructure,
+                               warnings: warnings)
+        }
+
+        let hasRPE = allSteps(in: structure).contains { $0.intensity != nil && $0.target == nil }
+        if hasRPE { warnings.append(.rpePreservedAsText) }
+        return result(
+            workout, template: template,
+            outcome: warnings.isEmpty ? .exact : .simplified,
+            representation: .custom(activity: activity, location: location, displayName: workout.title,
+                                    warmup: warmup, blocks: blocks, cooldown: cooldown),
+            warnings: warnings)
+    }
+
+    private func unsupported(
+        _ workout: ScheduledWorkout,
+        templateID: UUID?,
+        reason: WorkoutKitUnsupportedReason,
+        warnings: [WorkoutKitConversionWarning] = []
+    ) -> WorkoutKitConversionResult {
+        WorkoutKitConversionResult(
+            scheduledWorkoutID: workout.id, templateID: templateID, sport: workout.sport,
+            outcome: .unsupported, representation: nil, warnings: warnings,
+            unsupportedReasons: [reason])
+    }
+
+    private func result(
+        _ workout: ScheduledWorkout,
+        template: WorkoutTemplate,
+        outcome: WorkoutKitConversionOutcome,
+        representation: WorkoutKitWorkoutRepresentation,
+        warnings: [WorkoutKitConversionWarning]
+    ) -> WorkoutKitConversionResult {
+        WorkoutKitConversionResult(
+            scheduledWorkoutID: workout.id, templateID: template.id, sport: workout.sport,
+            outcome: outcome, representation: representation, warnings: Array(Set(warnings)),
+            unsupportedReasons: [])
+    }
+
+    private func activity(for sport: Sport) -> WorkoutKitActivityRepresentation? {
+        switch sport {
+        case .run: .running
+        case .bike: .cycling
+        case .swim: .swimming
+        case .strength, .mobility, .recovery, .brick, .race: nil
+        }
+    }
+
+    private func location(for location: WorkoutLocation?) -> WorkoutKitLocationRepresentation {
+        switch location {
+        case .indoor: .indoor
+        case .outdoor: .outdoor
+        case .pool: .pool
+        case .openWater: .openWater
+        case nil: .unknown
+        }
+    }
+
+    private func baseGoal(for workout: ScheduledWorkout) -> WorkoutKitGoalRepresentation {
+        if let distance = workout.plannedDistanceMeters, distance > 0 { return .distance(metres: distance) }
+        if workout.effectivePlannedMinutes > 0 { return .time(seconds: workout.effectivePlannedMinutes * 60) }
+        return .open
+    }
+
+    private func supplementalWarnings(for template: WorkoutTemplate) -> [WorkoutKitConversionWarning] {
+        var warnings: [WorkoutKitConversionWarning] = []
+        if !template.techniqueCues.isEmpty { warnings.append(.techniqueCuesRemainInEndurance) }
+        if template.fueling != nil || template.hydration != nil { warnings.append(.fuelingInstructionsRemainInEndurance) }
+        if !template.gear.isEmpty || !template.safetyNotes.isEmpty { warnings.append(.supplementalInstructionsRemainInEndurance) }
+        return warnings
+    }
+
+    private func containsUnsupportedNesting(in structure: WorkoutStructure) -> Bool {
+        allSteps(in: structure).contains { step in
+            step.childSteps.contains { !$0.childSteps.isEmpty }
+        }
+    }
+
+    private func allSteps(in structure: WorkoutStructure) -> [WorkoutStep] {
+        structure.warmup + structure.mainSet + structure.cooldown
+    }
+
+    /// `nil` means an empty phase; `some(nil)` is impossible in Swift, so an
+    /// invalid phase is represented by returning nil only when it contains
+    /// unrepresentable goals. Multiple compatible steps are combined, visibly
+    /// marked as a simplification.
+    private func combinePhase(
+        _ steps: [WorkoutStep],
+        activity: WorkoutKitActivityRepresentation,
+        location: WorkoutKitLocationRepresentation,
+        warnings: inout [WorkoutKitConversionWarning]
+    ) -> WorkoutKitStepRepresentation? {
+        guard !steps.isEmpty else { return nil }
+        if steps.count == 1, let step = steps.first, step.childSteps.isEmpty {
+            return stepRepresentation(step, purpose: nil, activity: activity, location: location, warnings: &warnings)
+        }
+        let direct = steps.filter { $0.childSteps.isEmpty }
+        guard direct.count == steps.count,
+              direct.allSatisfy({ $0.target == nil && !$0.isOpenGoal }) else { return nil }
+        let durations = direct.compactMap(\.durationSeconds)
+        let distances = direct.compactMap(\.distanceMeters)
+        if durations.count == direct.count {
+            warnings.append(.stepsCombined)
+            return WorkoutKitStepRepresentation(goal: .time(seconds: durations.reduce(0, +)), displayName: direct.first?.label)
+        }
+        if distances.count == direct.count {
+            warnings.append(.stepsCombined)
+            return WorkoutKitStepRepresentation(goal: .distance(metres: distances.reduce(0, +)), displayName: direct.first?.label)
+        }
+        return nil
+    }
+
+    private func blocks(
+        for steps: [WorkoutStep],
+        activity: WorkoutKitActivityRepresentation,
+        location: WorkoutKitLocationRepresentation,
+        warnings: inout [WorkoutKitConversionWarning]
+    ) -> [WorkoutKitIntervalBlock]? {
+        guard !steps.isEmpty else { return [] }
+        var blocks: [WorkoutKitIntervalBlock] = []
+        var flat: [WorkoutKitStepRepresentation] = []
+
+        func flushFlat() {
+            guard !flat.isEmpty else { return }
+            blocks.append(WorkoutKitIntervalBlock(steps: flat))
+            flat.removeAll()
+        }
+
+        for step in steps {
+            if step.childSteps.isEmpty {
+                guard let converted = stepRepresentation(step, purpose: purpose(for: step.kind),
+                                                         activity: activity, location: location,
+                                                         warnings: &warnings) else { return nil }
+                flat.append(converted)
+                continue
+            }
+            flushFlat()
+            guard step.childSteps.allSatisfy({ $0.childSteps.isEmpty }) else { return nil }
+            var converted: [WorkoutKitStepRepresentation] = []
+            for child in step.childSteps {
+                guard let childStep = stepRepresentation(
+                    child, purpose: purpose(for: child.kind), activity: activity,
+                    location: location, warnings: &warnings
+                ) else { return nil }
+                converted.append(childStep)
+            }
+            blocks.append(WorkoutKitIntervalBlock(steps: converted, iterations: step.repeats))
+        }
+        flushFlat()
+        return blocks
+    }
+
+    private func purpose(for kind: StepKind) -> WorkoutKitStepRepresentation.Purpose? {
+        switch kind {
+        case .recovery, .rest: .recovery
+        case .work, .steady, .drill: .work
+        case .warmup, .cooldown, .transition: nil
+        }
+    }
+
+    private func stepRepresentation(
+        _ step: WorkoutStep,
+        purpose: WorkoutKitStepRepresentation.Purpose?,
+        activity: WorkoutKitActivityRepresentation,
+        location: WorkoutKitLocationRepresentation,
+        warnings: inout [WorkoutKitConversionWarning]
+    ) -> WorkoutKitStepRepresentation? {
+        if step.kind == .transition {
+            warnings.append(.transitionInstructionsOmitted)
+            return nil
+        }
+        if step.kind == .drill { warnings.append(.drillRepresentedAsWork) }
+        let goal: WorkoutKitGoalRepresentation
+        if let distance = step.distanceMeters, distance > 0,
+           let seconds = step.durationSeconds, seconds > 0,
+           activity == .swimming, location == .pool {
+            goal = .poolDistanceWithTime(metres: distance, seconds: seconds)
+        } else if let distance = step.distanceMeters, distance > 0 {
+            goal = .distance(metres: distance)
+        } else if let seconds = step.durationSeconds, seconds > 0 {
+            goal = .time(seconds: seconds)
+        } else if step.isOpenGoal {
+            goal = .open
+        } else {
+            return nil
+        }
+        let alert: WorkoutKitAlertRepresentation?
+        switch step.target {
+        case .heartRate(let bpm): alert = .heartRate(bpm: bpm)
+        case .speed(let speed): alert = .speed(metresPerSecond: speed)
+        case .power(let watts): alert = .power(watts: watts)
+        case .cadence(let rpm): alert = .cadence(rpm: rpm)
+        case nil: alert = nil
+        }
+        let rpe = step.intensity?.rpeRange
+        return WorkoutKitStepRepresentation(purpose: purpose, goal: goal, alert: alert,
+                                             displayName: step.label.isEmpty ? nil : step.label,
+                                             perceivedExertionRange: rpe)
+    }
+}
+
+// MARK: - Scheduling representation
+
+public enum WorkoutKitSchedulingHorizon: String, Codable, Sendable, Hashable, CaseIterable {
+    case off
+    case nextWorkout
+    case days3
+    case days7
+    case days14
+
+    public var days: Int? {
+        switch self {
+        case .off: nil
+        case .nextWorkout: 0
+        case .days3: 3
+        case .days7: 7
+        case .days14: 14
+        }
+    }
+    public var localizationKey: String { "workoutkit.horizon.\(rawValue)" }
+}
+
+public struct WorkoutKitSchedulingPreferences: Codable, Sendable, Hashable {
+    public var isEnabled: Bool
+    public var horizon: WorkoutKitSchedulingHorizon
+    public var lastSuccessfulSynchronization: Date?
+
+    public init(
+        isEnabled: Bool = false,
+        horizon: WorkoutKitSchedulingHorizon = .nextWorkout,
+        lastSuccessfulSynchronization: Date? = nil
+    ) {
+        self.isEnabled = isEnabled
+        self.horizon = horizon
+        self.lastSuccessfulSynchronization = lastSuccessfulSynchronization
+    }
+}
+
+public extension WorkoutKitConversionResult {
+    /// A stable WorkoutKit identity, scoped to conversion behaviour so a future
+    /// meaningful output change cannot accidentally manage an obsolete plan.
+    var deterministicWorkoutPlanID: UUID {
+        UUID.endurance(schedule: "workoutkit|\(scheduledWorkoutID.uuidString)|v\(conversionVersion)")
+    }
+}
+
+public enum WorkoutKitScheduleStatus: String, Codable, Sendable, Hashable, CaseIterable {
+    case notEvaluated
+    case exactAvailable
+    case simplifiedAvailable
+    case unsupported
+    case authorizationRequired
+    case scheduling
+    case scheduled
+    case rescheduling
+    case removing
+    case removed
+    case failedRetryable
+    case failedPermanent
+    case stale
+
+    public var localizationKey: String { "workoutkit.status.\(rawValue)" }
+}
+
+public enum WorkoutKitFailureCategory: String, Codable, Sendable, Hashable {
+    case workoutKitUnavailable
+    case authorizationRequired
+    case authorizationDenied
+    case conversionUnsupported
+    case simplificationNotApproved
+    case invalidWorkoutStructure
+    case unsupportedGoal
+    case unsupportedAlert
+    case unsupportedMultisport
+    case scheduleFailed
+    case rescheduleFailed
+    case removalFailed
+    case duplicatePrevented
+    case staleSchedule
+    case persistenceFailedAfterSchedule
+    case reconciliationRequired
+
+    public enum Classification: String, Codable, Sendable, Hashable {
+        case retryable
+        case userActionRequired
+        case permanentForWorkout
+        case unavailableOnDevice
+        case internalConsistencyFailure
+    }
+
+    public var classification: Classification {
+        switch self {
+        case .scheduleFailed, .rescheduleFailed, .removalFailed, .staleSchedule: .retryable
+        case .authorizationRequired, .authorizationDenied, .simplificationNotApproved: .userActionRequired
+        case .conversionUnsupported, .invalidWorkoutStructure, .unsupportedGoal, .unsupportedAlert, .unsupportedMultisport: .permanentForWorkout
+        case .workoutKitUnavailable: .unavailableOnDevice
+        case .duplicatePrevented, .persistenceFailedAfterSchedule, .reconciliationRequired: .internalConsistencyFailure
+        }
+    }
+}
+
+public enum WorkoutKitSchedulingError: Error, Sendable, Equatable {
+    case workoutKitUnavailable
+    case authorizationRequired
+    case authorizationDenied
+    case conversionUnsupported
+    case simplificationNotApproved
+    case invalidWorkoutStructure
+    case unsupportedGoal
+    case unsupportedAlert
+    case unsupportedMultisport
+    case scheduleFailed
+    case rescheduleFailed
+    case removalFailed
+    case duplicatePrevented
+    case staleSchedule
+    case persistenceFailedAfterSchedule
+    case reconciliationRequired
+
+    public var category: WorkoutKitFailureCategory {
+        switch self {
+        case .workoutKitUnavailable: .workoutKitUnavailable
+        case .authorizationRequired: .authorizationRequired
+        case .authorizationDenied: .authorizationDenied
+        case .conversionUnsupported: .conversionUnsupported
+        case .simplificationNotApproved: .simplificationNotApproved
+        case .invalidWorkoutStructure: .invalidWorkoutStructure
+        case .unsupportedGoal: .unsupportedGoal
+        case .unsupportedAlert: .unsupportedAlert
+        case .unsupportedMultisport: .unsupportedMultisport
+        case .scheduleFailed: .scheduleFailed
+        case .rescheduleFailed: .rescheduleFailed
+        case .removalFailed: .removalFailed
+        case .duplicatePrevented: .duplicatePrevented
+        case .staleSchedule: .staleSchedule
+        case .persistenceFailedAfterSchedule: .persistenceFailedAfterSchedule
+        case .reconciliationRequired: .reconciliationRequired
+        }
+    }
 }

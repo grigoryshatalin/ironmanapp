@@ -58,6 +58,8 @@ targets:
         product: EnduranceTrainingPlans
       - package: EndurancePackages
         product: EnduranceHealth
+      - package: EndurancePackages
+        product: EnduranceWorkoutKit
     settings:
       base:
         PRODUCT_NAME: Endurance
@@ -84,6 +86,8 @@ targets:
         product: EnduranceTrainingPlans
       - package: EndurancePackages
         product: EnduranceHealth
+      - package: EndurancePackages
+        product: EnduranceWorkoutKit
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

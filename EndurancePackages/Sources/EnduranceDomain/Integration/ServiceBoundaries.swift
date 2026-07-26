@@ -96,26 +96,62 @@ public enum HealthCapability: String, Codable, Sendable, Hashable, CaseIterable 
 
 /// Converts an Endurance session into a schedulable structured workout.
 public protocol WorkoutKitConverting: Sendable {
-    func convert(_ workout: ScheduledWorkout, steps: WorkoutStructure?) -> WorkoutConversion
+    func convert(_ workout: ScheduledWorkout, template: WorkoutTemplate?) -> WorkoutKitConversionResult
 }
 
 /// Schedules converted workouts onto the Watch's Workout app.
 public protocol WorkoutScheduling: Sendable {
+    var isSupported: Bool { get }
     func authorizationState() async -> WorkoutSchedulingAuthorization
     func requestAuthorization() async -> WorkoutSchedulingAuthorization
-    /// Only an upcoming window is ever scheduled — never all 382 sessions (§I).
-    func schedule(_ conversions: [WorkoutConversion], within horizon: DateInterval) async throws -> [WorkoutKitScheduleRecord]
-    func cancel(scheduledWorkoutIDs: [UUID]) async throws
-    func scheduledRecords() async throws -> [WorkoutKitScheduleRecord]
+    func schedule(_ request: WorkoutKitScheduleRequest) async throws
+    func remove(_ request: WorkoutKitScheduleRequest) async throws
+    /// The app-owned system schedule, used to reconcile a previous successful
+    /// framework call whose local transaction did not finish.
+    func scheduledPlans() async throws -> [WorkoutKitScheduledPlan]
+    func removeAllEndurancePlans() async throws
 }
 
 public enum WorkoutSchedulingAuthorization: String, Codable, Sendable, Hashable {
     case notDetermined
     case authorized
     case denied
+    case restricted
     case unavailable
 
     public var localizationKey: String { "wkauth.\(rawValue)" }
+}
+
+/// A framework-free scheduling command. `workoutPlanID` is deterministic from
+/// the Endurance scheduled-workout ID + conversion version; it is intentionally
+/// not an execution or HealthKit identifier.
+public struct WorkoutKitScheduleRequest: Codable, Sendable, Hashable, Identifiable {
+    public var id: UUID { workoutPlanID }
+    public var workoutPlanID: UUID
+    public var scheduledWorkoutID: UUID
+    public var plannedStart: Date
+    public var conversion: WorkoutKitConversionResult
+
+    public init(workoutPlanID: UUID, scheduledWorkoutID: UUID, plannedStart: Date,
+                conversion: WorkoutKitConversionResult) {
+        self.workoutPlanID = workoutPlanID
+        self.scheduledWorkoutID = scheduledWorkoutID
+        self.plannedStart = plannedStart
+        self.conversion = conversion
+    }
+}
+
+public struct WorkoutKitScheduledPlan: Codable, Sendable, Hashable, Identifiable {
+    public var id: UUID { workoutPlanID }
+    public var workoutPlanID: UUID
+    public var plannedStart: Date
+    public var isComplete: Bool
+
+    public init(workoutPlanID: UUID, plannedStart: Date, isComplete: Bool = false) {
+        self.workoutPlanID = workoutPlanID
+        self.plannedStart = plannedStart
+        self.isComplete = isComplete
+    }
 }
 
 // MARK: - Active workout
@@ -185,34 +221,74 @@ public protocol TodaySnapshotProviding: Sendable {
 public struct WorkoutKitScheduleRecord: Codable, Sendable, Hashable, Identifiable {
     public var id: UUID
     public var scheduledWorkoutID: UUID
-    /// The identifier the scheduler gave us, for later cancellation.
+    public var templateID: UUID?
+    /// Deterministic `WorkoutPlan.id`, not a HealthKit UUID or execution ID.
     public var schedulingIdentifier: String
-    public var conversionKind: WorkoutConversion.Kind
+    public var conversionOutcome: WorkoutKitConversionOutcome
     /// Bumped when the converter's behaviour changes, so stale schedules can be
     /// detected and refreshed rather than silently diverging.
     public var conversionVersion: Int
-    public var scheduledAt: Date
-    public var plannedDate: Date
-    public var isStale: Bool
+    public var conversionFingerprint: String
+    public var originalPlannedStart: Date
+    public var lastScheduledStart: Date
+    public var status: WorkoutKitScheduleStatus
+    public var lastSynchronization: Date?
+    public var warnings: [WorkoutKitConversionWarning]
+    public var parentBrickGroupID: UUID?
+    public var componentScheduledWorkoutIDs: [UUID]
+    public var schedulingOrder: Int
+    public var lastFailure: WorkoutKitFailureCategory?
+    public var retryCount: Int
+    public var removedAt: Date?
+    /// An athlete approved this exact conversion fingerprint. An unrelated
+    /// future simplification still needs a fresh confirmation.
+    public var userConfirmedSimplification: Bool
 
     public init(
         id: UUID = UUID(),
         scheduledWorkoutID: UUID,
         schedulingIdentifier: String,
-        conversionKind: WorkoutConversion.Kind,
+        templateID: UUID? = nil,
+        conversionOutcome: WorkoutKitConversionOutcome,
         conversionVersion: Int,
-        scheduledAt: Date = Date(),
-        plannedDate: Date,
-        isStale: Bool = false
+        conversionFingerprint: String,
+        originalPlannedStart: Date,
+        lastScheduledStart: Date,
+        status: WorkoutKitScheduleStatus,
+        lastSynchronization: Date? = nil,
+        warnings: [WorkoutKitConversionWarning] = [],
+        parentBrickGroupID: UUID? = nil,
+        componentScheduledWorkoutIDs: [UUID] = [],
+        schedulingOrder: Int = 0,
+        lastFailure: WorkoutKitFailureCategory? = nil,
+        retryCount: Int = 0,
+        removedAt: Date? = nil,
+        userConfirmedSimplification: Bool = false
     ) {
         self.id = id
         self.scheduledWorkoutID = scheduledWorkoutID
+        self.templateID = templateID
         self.schedulingIdentifier = schedulingIdentifier
-        self.conversionKind = conversionKind
+        self.conversionOutcome = conversionOutcome
         self.conversionVersion = conversionVersion
-        self.scheduledAt = scheduledAt
-        self.plannedDate = plannedDate
-        self.isStale = isStale
+        self.conversionFingerprint = conversionFingerprint
+        self.originalPlannedStart = originalPlannedStart
+        self.lastScheduledStart = lastScheduledStart
+        self.status = status
+        self.lastSynchronization = lastSynchronization
+        self.warnings = warnings
+        self.parentBrickGroupID = parentBrickGroupID
+        self.componentScheduledWorkoutIDs = componentScheduledWorkoutIDs
+        self.schedulingOrder = schedulingOrder
+        self.lastFailure = lastFailure
+        self.retryCount = retryCount
+        self.removedAt = removedAt
+        self.userConfirmedSimplification = userConfirmedSimplification
+    }
+
+    public var workoutPlanID: UUID? { UUID(uuidString: schedulingIdentifier) }
+    public var isStale: Bool {
+        status == .stale || conversionVersion < WorkoutKitConversionResult.currentVersion
     }
 }
 
