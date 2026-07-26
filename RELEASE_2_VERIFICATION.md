@@ -41,6 +41,21 @@ Recorded per §A before any Release 2 production code was written.
 New in Stage 3: 45 pure tests (eligibility, payload, ownership) and 18 app tests
 (export workflow, idempotency, orphan recovery, deletion, round trip).
 
+**Final Stage 3 result, from a single uncontended run:**
+`174` domain + `66` app tests, **0 failures, 0 warnings**.
+
+### Test-suite robustness
+
+Two failures during Stage 3 were traced to **host contention that I generated**
+by running `xcodebuild` invocations concurrently against one simulator. Both
+passed in isolation. Rather than label them flake, the underlying weakness was
+fixed: `completeOnboarding` and `selectTab` waited for element *existence*
+before tapping, but a tab button or a wizard control can exist while not yet
+hittable. Both now wait for hittability.
+
+Operational rule: **serialise verification runs.** Do not run a second
+`xcodebuild` against the same simulator host while a suite is running.
+
 ## 2. Test commands
 
 ```sh

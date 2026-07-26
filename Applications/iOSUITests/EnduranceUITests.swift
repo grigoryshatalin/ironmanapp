@@ -41,7 +41,8 @@ final class EnduranceUITests: XCTestCase {
             return
         }
         let button = app.tabBars.buttons.element(boundBy: index)
-        XCTAssertTrue(button.waitForExistence(timeout: 10), "Tab \(index) not found.")
+        XCTAssertTrue(button.waitForExistence(timeout: 15), "Tab \(index) not found.")
+        XCTAssertTrue(waitUntilHittable(button), "Tab \(index) never became hittable.")
         button.tap()
     }
 
