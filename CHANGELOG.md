@@ -8,6 +8,42 @@ absolute.
 
 ## [Unreleased] — Release 1 (Core training MVP) in progress
 
+### 2026‑07‑25 — Stage 2b: first Xcode build; the app compiles, tests, and runs
+
+The app layer had been authored without a compiler ever seeing it. It now
+builds, tests, and launches.
+
+Fixed (3 files, the complete set of first‑build failures)
+- **`NotificationScheduler`** — Swift 6 strict concurrency. The class is now
+  `@MainActor` (it is owned by the main‑actor `AppEnvironment` and holds a
+  non‑`Sendable` `deepLinkHandler`), while the two
+  `UNUserNotificationCenterDelegate` witnesses are `nonisolated` and hop to the
+  main actor themselves. `UNUserNotificationCenterDelegate` is not `@MainActor`
+  and its parameters are not `Sendable`, so isolating the class alone was
+  insufficient.
+- **`NotificationSettingsView`** — `Section(_ title:) { } footer: { }` is not a
+  valid initializer; a string title and a footer are mutually exclusive. Switched
+  to the explicit `header:` / `footer:` form.
+- **`Info.plist`** — added `CFBundleIdentifier`, `CFBundleExecutable`,
+  `CFBundlePackageType`, `CFBundleInfoDictionaryVersion` and
+  `CFBundleDevelopmentRegion`. Without them the Simulator refused to install the
+  app ("Missing bundle ID"); XcodeGen injects these only under
+  `GENERATE_INFOPLIST_FILE`, which this target does not use.
+
+Verified (Xcode 26.6, iOS 26.5 SDK, iPhone 17 Simulator)
+- `xcodebuild build` — **0 errors, 0 warnings**.
+- `xcodebuild test` — **6 tests passing** (4 app unit, 2 UI).
+- The app **installs, launches, and renders onboarding**; SwiftData creates its
+  persistent store (no in‑memory fallback). First screenshot captured to
+  `docs/screenshots/`.
+- `swift test` — **57 domain tests passing**; plan JSON still byte‑reproducible
+  at 36 weeks / 252 days / 382 workouts.
+
+Documentation
+- `README.md`, `LIMITATIONS_AND_NEXT_STEPS.md` corrected — they described a
+  headless, Xcode‑less environment and listed the six screens as unimplemented,
+  both of which are no longer true.
+
 ### 2026‑07‑25 — Stage 1–2: research, decisions, and verified domain core
 
 Added
@@ -64,11 +100,14 @@ Verified
   with **zero warnings** on Swift 6.1. Plan JSON is byte‑identical across runs.
 
 ### Next (planned, this release)
-- Compile the SwiftUI app layer in Xcode (`xcodegen generate`) — this environment
-  has only Command Line Tools (no iOS SDK), so the app layer is authored and
-  reviewed here but must be built in Xcode; fix any environment‑specific issues,
-  run on Simulator + a physical device, and capture screenshots.
-- Add accessibility identifiers on onboarding/Today controls and complete the
-  `XCUITest` flows; run Dynamic Type / VoiceOver passes from `QA_CHECKLIST.md`.
-- Draw the app‑icon art per `ICON_SPEC.md`; add per‑workout interval check‑off and
-  Plan filtering (both already supported by the data model).
+- Add accessibility identifiers on onboarding/Today controls — a §20 requirement,
+  and the blocker on UI tests that can assert more than "the app launched".
+- Drive onboarding end to end in a UI test, then assert that completion and
+  rescheduling survive relaunch (§31).
+- Move user‑facing strings into a String Catalog (§28.18) before the codebase
+  grows further.
+- Run the `QA_CHECKLIST.md` matrix (Dark Mode, largest Dynamic Type, VoiceOver,
+  Reduce Motion) and capture screenshots of every screen.
+- Verify on a physical iPhone, including notification delivery and deep‑link taps.
+- Draw the app‑icon art per `ICON_SPEC.md`; add haptics, per‑workout interval
+  check‑off, and Plan filtering (all already supported by the data model).

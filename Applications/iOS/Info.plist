@@ -9,10 +9,25 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Standard bundle keys. Required because this target uses an explicit
+         INFOPLIST_FILE rather than GENERATE_INFOPLIST_FILE, so nothing injects
+         them for us — without CFBundleIdentifier the Simulator refuses to
+         install the .app ("Missing bundle ID"). Values come from build settings
+         so the product name stays isolated in project.yml. -->
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
     <string>Endurance</string>
     <key>CFBundleName</key>
-    <string>Endurance</string>
+    <string>$(PRODUCT_NAME)</string>
     <key>CFBundleShortVersionString</key>
     <string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key>

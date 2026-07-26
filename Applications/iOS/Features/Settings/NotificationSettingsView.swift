@@ -23,11 +23,16 @@ struct NotificationSettingsView: View {
                 }
             }
 
-            Section("Timing") {
+            // `Section` has no (title, content:, footer:) initializer — a string
+            // title and a footer are mutually exclusive, so use the explicit
+            // header/footer form.
+            Section {
                 Stepper("Workout reminder: \(prefs.workoutLeadMinutes) min before",
                         value: bindingInt(\.workoutLeadMinutes), in: 0...240, step: 15)
                 Stepper("Scheduling window: \(prefs.schedulingWindowDays) days",
                         value: bindingInt(\.schedulingWindowDays), in: 7...35, step: 7)
+            } header: {
+                Text("Timing")
             } footer: {
                 Text("iOS keeps at most 64 pending reminders. \(AppConfig.productName) schedules the soonest ones and refreshes them automatically.")
             }
