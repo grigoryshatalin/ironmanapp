@@ -161,6 +161,7 @@ enum A11y {
         static let horizon = "workoutkit.horizon"
         static let lastSync = "workoutkit.lastSync"
         static let failure = "workoutkit.failure"
+        static let failureCode = "workoutkit.failureCode"
         static let resync = "workoutkit.resync"
         static let removeAll = "workoutkit.removeAll"
         static func previewRow(_ index: Int) -> String { "workoutkit.preview.\(index)" }

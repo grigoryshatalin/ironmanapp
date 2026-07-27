@@ -54,6 +54,17 @@ struct WorkoutKitSettingsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier(A11y.WorkoutKit.failure)
+                #if DEBUG
+                // The stable failure code, verbatim. The friendly sentence above
+                // is deliberately vague about the cause, which makes a real
+                // failure impossible to diagnose without attaching a debugger —
+                // and WorkoutKit failures only ever happen on a real device with
+                // a real Watch, where attaching one is least convenient.
+                Text(verbatim: "code: \(failure.rawValue)")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.tertiary)
+                    .accessibilityIdentifier(A11y.WorkoutKit.failureCode)
+                #endif
             }
         } footer: {
             if !coordinator.isSupported {

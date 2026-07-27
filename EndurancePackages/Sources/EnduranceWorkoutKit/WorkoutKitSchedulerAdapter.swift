@@ -35,13 +35,13 @@ public final class WorkoutKitSchedulerAdapter: @unchecked Sendable, WorkoutSched
         }
         let date = dateComponents(for: request.plannedStart)
         let existing = await scheduler.scheduledWorkouts
-        if existing.contains(where: { $0.plan.id == request.workoutPlanID && $0.date == date }) {
+        if existing.contains(where: { matches($0, planID: request.workoutPlanID, slot: date) }) {
             return // Idempotent repeated synchronization.
         }
         let plan = try makePlan(from: request)
         await scheduler.schedule(plan, at: date)
         let reconciled = await scheduler.scheduledWorkouts
-        guard reconciled.contains(where: { $0.plan.id == request.workoutPlanID && $0.date == date }) else {
+        guard reconciled.contains(where: { matches($0, planID: request.workoutPlanID, slot: date) }) else {
             throw WorkoutKitSchedulingError.scheduleFailed
         }
     }
@@ -50,13 +50,13 @@ public final class WorkoutKitSchedulerAdapter: @unchecked Sendable, WorkoutSched
         guard isSupported else { throw WorkoutKitSchedulingError.workoutKitUnavailable }
         let date = dateComponents(for: request.plannedStart)
         let existing = await scheduler.scheduledWorkouts
-        guard existing.contains(where: { $0.plan.id == request.workoutPlanID && $0.date == date }) else {
+        guard existing.contains(where: { matches($0, planID: request.workoutPlanID, slot: date) }) else {
             return // It is already absent: removal is idempotent.
         }
         let plan = try makePlan(from: request)
         await scheduler.remove(plan, at: date)
         let reconciled = await scheduler.scheduledWorkouts
-        guard !reconciled.contains(where: { $0.plan.id == request.workoutPlanID && $0.date == date }) else {
+        guard !reconciled.contains(where: { matches($0, planID: request.workoutPlanID, slot: date) }) else {
             throw WorkoutKitSchedulingError.removalFailed
         }
     }
@@ -80,7 +80,10 @@ public final class WorkoutKitSchedulerAdapter: @unchecked Sendable, WorkoutSched
 
     // MARK: - Framework mapping
 
-    private func makePlan(from request: WorkoutKitScheduleRequest) throws -> WorkoutPlan {
+    /// Internal rather than private so tests can ask the *real* framework
+    /// whether every representation the converter produces is actually
+    /// acceptable. Simulator-only, since WorkoutKit does not exist on macOS.
+    func makePlan(from request: WorkoutKitScheduleRequest) throws -> WorkoutPlan {
         guard let representation = request.conversion.representation else {
             throw WorkoutKitSchedulingError.conversionUnsupported
         }
@@ -231,8 +234,28 @@ public final class WorkoutKitSchedulerAdapter: @unchecked Sendable, WorkoutSched
         }
     }
 
+    /// The scheduling slot, as the fields WorkoutKit actually needs.
+    ///
+    /// `.calendar` and `.timeZone` used to be requested here, which stored a
+    /// `Calendar` and `TimeZone` *inside* the `DateComponents`. `DateComponents`
+    /// equality is structural over every field, so a value carrying a calendar
+    /// could never compare equal to one WorkoutKit constructed — and equality is
+    /// what `schedule` and `remove` use to confirm their own work. Every sync
+    /// reported `scheduleFailed` immediately after scheduling.
     private func dateComponents(for date: Date) -> DateComponents {
-        Calendar.current.dateComponents([.calendar, .timeZone, .year, .month, .day, .hour, .minute], from: date)
+        Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+    }
+
+    /// Identity of a scheduled plan, compared field-wise rather than by
+    /// `DateComponents ==`. Two components describing the same minute must match
+    /// even if one carries fields the other leaves nil — which is exactly the
+    /// asymmetry that arises when one side is ours and the other is the
+    /// framework's.
+    private func matches(_ scheduled: ScheduledWorkoutPlan, planID: UUID, slot: DateComponents) -> Bool {
+        guard scheduled.plan.id == planID else { return false }
+        let a = scheduled.date, b = slot
+        return a.year == b.year && a.month == b.month && a.day == b.day
+            && a.hour == b.hour && a.minute == b.minute
     }
 
     private func map(_ state: WorkoutScheduler.AuthorizationState) -> WorkoutSchedulingAuthorization {
