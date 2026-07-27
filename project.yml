@@ -13,7 +13,7 @@
 name: Endurance
 
 options:
-  bundleIdPrefix: com.example.endurance
+  bundleIdPrefix: com.grigoryshatalin
   createIntermediateGroups: true
   deploymentTarget:
     iOS: "18.0"
@@ -32,7 +32,7 @@ settings:
     DEVELOPMENT_LANGUAGE: en
     IPHONEOS_DEPLOYMENT_TARGET: "18.0"
     # Set your Apple Developer team here (or in Xcode → Signing & Capabilities).
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "G79W8NSTD7"
     CODE_SIGN_STYLE: Automatic
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
@@ -63,7 +63,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: Endurance
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.endurance
+        PRODUCT_BUNDLE_IDENTIFIER: com.grigoryshatalin.endurance
         INFOPLIST_FILE: Applications/iOS/Info.plist
         CODE_SIGN_ENTITLEMENTS: Applications/iOS/Endurance.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
