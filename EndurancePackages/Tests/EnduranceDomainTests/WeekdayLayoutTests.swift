@@ -52,7 +52,7 @@ struct WeekdayLayoutTests {
     @Test("No preferences yields the identity layout")
     func noPreferencesIsIdentity() throws {
         let week = try #require(SamplePlan.plan(weeks: 3).weeks.first)
-        let layout = WeekdayLayout.make(for: week, config: config())
+        let layout = WeekdayLayout.make(for: week, config: config(), planStartWeekday: 2)
         #expect(layout.isIdentity)
     }
 
@@ -60,7 +60,7 @@ struct WeekdayLayoutTests {
     func swapLongDays() throws {
         let week = try #require(SamplePlan.plan(weeks: 3).weeks.first)
         // Long ride → Sunday (1), long run → Saturday (7), rest stays Monday (2).
-        let layout = WeekdayLayout.make(for: week, config: config(bike: 1, run: 7, rest: 2))
+        let layout = WeekdayLayout.make(for: week, config: config(bike: 1, run: 7, rest: 2), planStartWeekday: 2)
         #expect(layout.destinations == [0, 1, 2, 3, 4, 6, 5])
         #expect(Set(layout.destinations).count == 7, "must remain a permutation")
     }
@@ -72,7 +72,7 @@ struct WeekdayLayoutTests {
             for run in 1...7 {
                 for rest in 1...7 {
                     for week in plan.weeks {
-                        let layout = WeekdayLayout.make(for: week, config: config(bike: bike, run: run, rest: rest))
+                        let layout = WeekdayLayout.make(for: week, config: config(bike: bike, run: run, rest: rest), planStartWeekday: 2)
                         #expect(Set(layout.destinations) == Set(0..<7),
                                 "bike \(bike) run \(run) rest \(rest) week \(week.weekNumber) produced \(layout.destinations)")
                     }
@@ -85,7 +85,7 @@ struct WeekdayLayoutTests {
     func conflictingPreferencesStillValid() throws {
         let week = try #require(SamplePlan.plan(weeks: 3).weeks.first)
         // All three roles demand Saturday. Only the highest priority (rest) wins.
-        let layout = WeekdayLayout.make(for: week, config: config(bike: 7, run: 7, rest: 7))
+        let layout = WeekdayLayout.make(for: week, config: config(bike: 7, run: 7, rest: 7), planStartWeekday: 2)
         #expect(Set(layout.destinations) == Set(0..<7))
         #expect(layout.destination(for: 0) == 5, "rest day claims Saturday first")
     }
@@ -187,8 +187,71 @@ struct WeekdayLayoutTests {
         #expect(allDays.count <= plan.totalDays)
 
         for week in plan.weeks {
-            let layout = WeekdayLayout.make(for: week, config: cfg)
+            let layout = WeekdayLayout.make(for: week, config: cfg, planStartWeekday: 2)
             #expect(Set(layout.destinations) == Set(0..<7), "week \(week.weekNumber)")
         }
+    }
+
+    // MARK: - Start-weekday independence (regression)
+
+    /// The bug this file could not see.
+    ///
+    /// Every other test here starts the plan on a Monday, matching the hardcoded
+    /// `startWeekday: 2`. Offsets were derived from that nominal value rather
+    /// than the weekday the plan actually begins on, so any non-Monday start
+    /// shifted every preferred day silently. Found on a real device, not here.
+    @Test("A preferred day lands on that weekday regardless of when the plan starts")
+    func preferredDayHoldsForEveryStartWeekday() throws {
+        let plan = SamplePlan.plan(weeks: 3)
+        let engine = ScheduleEngine()
+        let cal = TestDates.gregorian(tz)
+
+        // 2026-03-01 is a Sunday; walk a full week of start dates.
+        for dayOffset in 0..<7 {
+            let start = TestDates.date(2026, 3, 1 + dayOffset, tz: tz)
+            let startWeekday = cal.component(.weekday, from: start)
+
+            let cfg = ScheduleConfiguration(
+                anchor: .startDate(start),
+                startWeekday: 2, // deliberately left at onboarding's hardcoded Monday
+                weekdayDefaultTime: TimeOfDay(hour: 6, minute: 30),
+                weekendDefaultTime: TimeOfDay(hour: 8, minute: 0),
+                timeZoneIdentifier: tz,
+                preferredLongBikeWeekday: 7,  // Saturday
+                preferredLongRunWeekday: 1,   // Sunday
+                preferredRestWeekday: 2)      // Monday
+
+            let schedule = try engine.generateSchedule(plan: plan, config: cfg)
+            let ride = try #require(schedule.first { $0.title == "Long ride" && $0.weekNumber == 2 })
+            let run = try #require(schedule.first { $0.title == "Long run" && $0.weekNumber == 2 })
+
+            #expect(cal.component(.weekday, from: ride.scheduledDate) == 7,
+                    "start weekday \(startWeekday): long ride should be Saturday")
+            #expect(cal.component(.weekday, from: run.scheduledDate) == 1,
+                    "start weekday \(startWeekday): long run should be Sunday")
+        }
+    }
+
+    @Test("A race-date-anchored plan honours preferred days too")
+    func raceAnchoredHonoursPreferences() throws {
+        let plan = SamplePlan.plan(weeks: 3)
+        let cal = TestDates.gregorian(tz)
+        // A race on a Sunday; the derived start lands on an arbitrary weekday.
+        let race = TestDates.date(2026, 3, 22, tz: tz)
+
+        let cfg = ScheduleConfiguration(
+            anchor: .raceDate(race),
+            startWeekday: 2,
+            weekdayDefaultTime: TimeOfDay(hour: 6, minute: 30),
+            weekendDefaultTime: TimeOfDay(hour: 8, minute: 0),
+            timeZoneIdentifier: tz,
+            preferredLongBikeWeekday: 7,
+            preferredLongRunWeekday: 1,
+            preferredRestWeekday: 2)
+
+        let schedule = try ScheduleEngine().generateSchedule(plan: plan, config: cfg)
+        let ride = try #require(schedule.first { $0.title == "Long ride" && $0.weekNumber == 2 })
+        #expect(cal.component(.weekday, from: ride.scheduledDate) == 7,
+                "race-anchored plans derive an arbitrary start weekday and were always wrong")
     }
 }
