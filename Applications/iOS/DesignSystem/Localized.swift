@@ -72,3 +72,45 @@ extension CompletionSource {
 extension StepKind {
     var localizedName: String { Localized.string(localizationKey) }
 }
+
+// MARK: - Release 2 integration types
+
+extension HealthCapability {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutProvider {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutMatcher.Confidence {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension ActiveWorkoutState {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutKitConversionOutcome {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutKitConversionWarning {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutSchedulingAuthorization {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutKitScheduleStatus {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutKitSchedulingHorizon {
+    var localizedName: String { Localized.string(localizationKey) }
+}
+
+extension WorkoutKitUnsupportedReason {
+    var localizedName: String { Localized.string(localizationKey) }
+}

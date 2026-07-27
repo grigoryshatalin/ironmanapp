@@ -58,7 +58,8 @@ final class ScreenshotTests: XCTestCase {
 
     private func selectTab(_ index: Int) {
         let button = app.tabBars.buttons.element(boundBy: index)
-        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        XCTAssertTrue(button.waitForExistence(timeout: 15), "Tab \(index) missing.")
+        XCTAssertTrue(waitUntilHittable(button), "Tab \(index) never became hittable.")
         button.tap()
     }
 

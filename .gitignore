@@ -26,6 +26,16 @@ Package.resolved
 # macOS
 .DS_Store
 
+# Signing identities and secrets — NEVER commit.
+# A .p12 contains a private key; committing one publishes a credential that
+# then lives in git history even after deletion.
+*.p12
+*.p8
+*.cer
+*.certSigningRequest
+*.mobileprovision
+certificate*
+
 # Secrets / local config (never commit)
 *.xcconfig.local
 Secrets.local.xcconfig

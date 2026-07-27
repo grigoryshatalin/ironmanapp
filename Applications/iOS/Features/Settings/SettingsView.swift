@@ -27,8 +27,14 @@ struct SettingsView: View {
                     Label("Training zones", systemImage: "gauge.with.dots.needle.33percent")
                 }
                 .accessibilityIdentifier(A11y.Settings.trainingZones)
-                Label("Health access — available in a later update", systemImage: "heart")
-                    .foregroundStyle(.secondary)
+                NavigationLink { HealthSettingsView() } label: {
+                    Label("Health", systemImage: "heart")
+                }
+                .accessibilityIdentifier(A11y.Health.settingsLink)
+                NavigationLink { WorkoutKitSettingsView() } label: {
+                    Label("Apple Workout", systemImage: "applewatch")
+                }
+                .accessibilityIdentifier(A11y.WorkoutKit.settingsLink)
             }
             dataSection
             aboutSection

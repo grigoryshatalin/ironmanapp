@@ -26,6 +26,8 @@ let package = Package(
     products: [
         .library(name: "EnduranceDomain", targets: ["EnduranceDomain"]),
         .library(name: "EnduranceTrainingPlans", targets: ["EnduranceTrainingPlans"]),
+        .library(name: "EnduranceHealth", targets: ["EnduranceHealth"]),
+        .library(name: "EnduranceWorkoutKit", targets: ["EnduranceWorkoutKit"]),
         .executable(name: "enduranceplan", targets: ["enduranceplan"]),
     ],
     targets: [
@@ -39,6 +41,24 @@ let package = Package(
             resources: [.copy("Resources")],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
+        // The HealthKit adapter (§B). HealthKit itself is reachable only on iOS
+        // and watchOS, so every file that imports it is guarded by
+        // `#if canImport(HealthKit)`. The *mapping* and *eligibility* logic is
+        // deliberately kept HealthKit-free so it compiles — and is tested — on
+        // the macOS host under `swift test`, with no device or entitlement.
+        .target(
+            name: "EnduranceHealth",
+            dependencies: ["EnduranceDomain"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        // WorkoutKit is isolated from the Foundation-only domain just like
+        // HealthKit. The adapter accepts the domain's pure representation and
+        // is compiled only where the framework is present.
+        .target(
+            name: "EnduranceWorkoutKit",
+            dependencies: ["EnduranceDomain"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
         .executableTarget(
             name: "enduranceplan",
             dependencies: ["EnduranceDomain"],
@@ -48,6 +68,11 @@ let package = Package(
             name: "EnduranceDomainTests",
             dependencies: ["EnduranceDomain", "EnduranceTrainingPlans"],
             resources: [.copy("Fixtures")],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        .testTarget(
+            name: "EnduranceHealthTests",
+            dependencies: ["EnduranceHealth", "EnduranceDomain"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
     ]

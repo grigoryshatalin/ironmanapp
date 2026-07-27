@@ -51,10 +51,8 @@ struct WorkoutDetailView: View {
             .haptic(.completed, trigger: completionTick)
             .sheet(isPresented: $completing) {
                 CompletionSheet(workout: workout, units: store.units) { completion in
-                    do { try store.complete(workout.id, completion: completion) }
+                    do { try await env.completeWorkout(workout, completion: completion) }
                     catch { env.alert = .dataError }
-                    env.notifications.cancel(for: workout.id)
-                    await env.refreshSideEffects()
                     completionTick += 1
                 }
             }

@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Release 1 entitlements. An App Group is provisioned now (even though widgets and
-  the watch app ship later) so the shared SharedTodaySnapshot container needs no
-  migration when those targets arrive. See CAPABILITIES.md.
+  Endurance entitlements.
+
+  The App Group was provisioned in Release 1 (before widgets and the watch app
+  existed) so the shared SharedTodaySnapshot container needed no migration when
+  those targets arrived.
+
+  HealthKit is added in Release 2. Note what is deliberately ABSENT:
+    * `health-records` — Endurance never touches clinical records (§C).
+    * `background-delivery` — no background HealthKit observation is implemented,
+      so claiming the entitlement would be requesting a capability we do not use.
+  See CAPABILITIES.md for which of these require the paid Apple Developer
+  Program, and PRIVACY.md for what leaves the device (nothing).
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -11,5 +20,9 @@
     <array>
         <string>group.com.example.endurance</string>
     </array>
+    <key>com.apple.developer.healthkit</key>
+    <true/>
+    <key>com.apple.developer.healthkit.access</key>
+    <array/>
 </dict>
 </plist>

@@ -42,16 +42,24 @@ public struct WeekdayLayout: Sendable, Equatable {
     /// target weekday was already claimed by a higher-priority role — the plan's
     /// own ordering then fills the remaining slots in relative order, so the
     /// result is always a valid permutation.
+    /// - Parameter planStartWeekday: the Gregorian weekday (1 = Sun … 7 = Sat)
+    ///   that plan day 0 actually falls on. This is **not** the same as
+    ///   `config.startWeekday`, which is the plan's nominal week-start and is
+    ///   hardcoded to Monday by onboarding while the athlete picks any start
+    ///   date. Deriving offsets from the nominal value silently shifted every
+    ///   preferred day by the difference between the two — and did so invisibly,
+    ///   because every test used a Monday start.
     public static func make(
         for week: TrainingWeekDefinition,
-        config: ScheduleConfiguration
+        config: ScheduleConfiguration,
+        planStartWeekday: Int
     ) -> WeekdayLayout {
         var destination = [Int?](repeating: nil, count: 7)
         var usedTargets = Set<Int>()
 
         func offset(ofWeekday weekday: Int?) -> Int? {
             guard let weekday, (1...7).contains(weekday) else { return nil }
-            return ((weekday - config.startWeekday) % 7 + 7) % 7
+            return ((weekday - planStartWeekday) % 7 + 7) % 7
         }
 
         let roles: [(source: Int?, target: Int?)] = [

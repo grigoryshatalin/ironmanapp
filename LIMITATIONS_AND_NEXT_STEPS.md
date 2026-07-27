@@ -73,6 +73,24 @@ onboarding previously collected and ignored.
 
 ---
 
+## Release 2 status (2026‑07‑26)
+
+Stages 1–3 of 9 are implemented, tested and committed: the integration domain
+model, schema v2 with verified Release 1 migration, HealthKit import with an
+explainable Health Inbox, and a complete idempotent HealthKit export workflow.
+
+Not yet built: WorkoutKit (4), active workout recording (5), the watchOS app
+(6), Live Activities (7), widgets and App Intents (8), and full‑system
+verification (9).
+
+**No HealthKit behaviour has been verified against a real health store.** The
+adapters compile for iOS and every decision around them is unit‑tested with
+injected fakes, but the simulator builds without the HealthKit entitlement, so
+the real read/write path is untested. See
+`PHYSICAL_DEVICE_RELEASE_2_CHECKLIST.md`.
+
+---
+
 ## Next steps (prioritized)
 
 1. **Verify notifications on a physical iPhone** — the only item blocking

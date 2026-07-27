@@ -6,7 +6,113 @@ testable stages; each entry records what was added and verified.
 The format is loosely [Keep a Changelog](https://keepachangelog.com/). Dates are
 absolute.
 
-## [Unreleased] — Release 1 (Core training MVP) in progress
+## [Unreleased] — Release 2 (Apple ecosystem) in progress
+
+### 2026‑07‑27 — Device verification: five defects only hardware could expose
+
+Every item here was found by running the app on a physical iPhone. None was
+caught by 291 passing tests, and each is recorded with the reason it was
+invisible.
+
+Fixed
+- **Read authorization was never requested.** `refreshConnectionState()` derived
+  "have we asked?" from `capabilityStates.contains { $0.status != .notDetermined }`.
+  Read capabilities always report `.unknowable` (HealthKit will not disclose read
+  authorization), so the test was true on first launch, `.notConnected` was
+  unreachable, the Connect button never rendered, and `connect()` — the only
+  caller of `requestAuthorization` — could never run. HealthKit returns an empty
+  array with **no error** when reads are unauthorized, so this presented as an
+  empty Health Inbox with a successful import. Whether we have prompted is now
+  persisted by us. Diagnosed from the athlete's observation that iOS Settings
+  showed a write section but no read section for Endurance.
+- **Integration toggles were never persisted.** Health import/export, auto‑export
+  and WorkoutKit scheduling lived in memory, so every launch silently reset them
+  to off. Because `runImport()` and `rescanFromScratch()` both guard on the
+  import toggle, the feature presented as broken rather than disabled. Now stored
+  in `UserDefaults` — deliberately device‑local, since they gate a per‑device
+  permission and a paired Watch, neither of which syncs.
+- **Preferred weekdays were shifted for any non‑Monday start.** `WeekdayLayout`
+  derived offsets from `config.startWeekday` (nominal, hardcoded to Monday by
+  onboarding) rather than the weekday plan day 0 actually falls on. Every one of
+  the twelve existing tests used a Monday start; the helper was named
+  `mondayStart`. Race‑date‑anchored plans, which count back onto an arbitrary
+  weekday, were always wrong.
+- **Tapping a notification crashed the app.** The `UNUserNotificationCenterDelegate`
+  methods were marked `nonisolated` to satisfy non‑`Sendable` diagnostics. That
+  compiled cleanly and aborted on device with "Call must be made on main thread".
+  Now `@preconcurrency` on the conformance, keeping the work where the framework
+  requires it.
+- **Deliberate short sessions were discarded in silence.** The import floor was
+  five minutes; a logged 1‑minute core session vanished with no explanation.
+  Lowered to 30 seconds, and anything filtered is now reported rather than
+  dropped invisibly.
+
+Added
+- `HealthImportBatch.rawSampleCount` / `unmappedSampleCount`, surfaced in Health
+  settings. An unauthorized read and an empty store are indistinguishable to the
+  API, so the raw count is the only way to tell them apart — a full rescan
+  returning zero now names the cause and the Settings path to fix it.
+- `rescanFromScratch()` — drops the anchor and re‑reads the whole store,
+  preserving match decisions. Required because filtering happens *after* the
+  anchored query advances its anchor, so a policy change cannot otherwise
+  recover previously discarded activities.
+- A debug "send a test notification" action that builds its payload through the
+  production path, so it exercises the real tap‑handling code.
+
+Changed
+- `testEnablingRequestsAuthorizationAndSynchronizes` was weekday‑dependent: it
+  enabled with the `.nextWorkout` horizon, and day one of the bundled plan is
+  mobility, which WorkoutKit cannot represent. It passed or failed according to
+  the calendar. Confirmed pre‑existing by rerunning against a stashed tree.
+
+### 2026‑07‑26 — Release 2 Stage 3: HealthKit write / export
+
+A complete, idempotent export workflow — not a call to `save`.
+
+Added
+- **Export eligibility** as a pure, twelve‑state decision
+  (`ExportEligibilityEvaluator`). Views render it; they never compute it.
+  Evaluation order puts provenance *before* preferences, so the athlete is never
+  told "enable export" for a workout that enabling export still would not write.
+- **`HealthWorkoutExportPayload`** — decided and asserted before any HealthKit
+  object exists. It has nowhere to put fabricated data: absence is absence, not
+  a plausible zero.
+- **`HealthKitWorkoutExporter`** using `HKWorkoutBuilder` (the `HKWorkout`
+  initialisers are deprecated as of iOS 17). Save, replace, delete, and
+  metadata‑based orphan lookup.
+- **`HealthExportCoordinator`** — persists a pending record *before* the save,
+  so a crash between HealthKit accepting a write and our storing the identifier
+  leaves a recoverable row rather than an invisible orphan.
+- **Ownership guard** (`HealthOwnership`) checked twice — against our own record
+  and against HealthKit's source — so Endurance can never delete another app's
+  workout.
+- Export settings states, completion‑flow integration, `SDHealthExportRecord`,
+  and 45 new localized strings.
+
+Refused, deliberately and with tests
+- Re‑exporting a workout imported from Health.
+- Re‑exporting a watch‑recorded execution.
+- Filing a brick or a race as one misleading single‑sport workout.
+- Writing twice for one execution, however the second attempt arrives.
+
+Fixed
+- **A real bug the new tests caught:** `export()` reported `currentlySaving` for
+  a save that had already finished, because `defer` runs *after* the return
+  value is computed. The in‑flight set is now cleared before the state is read.
+
+Migration
+- No new schema version. `SDHealthExportRecord` is additive within v2, which has
+  not shipped. Once v2 ships, adding an entity requires v3.
+
+### 2026‑07‑26 — Release 2 Stage 2: HealthKit read integration
+
+See commit `be2f0b6`.
+
+### 2026‑07‑26 — Release 2 Stage 1: domain model, schema v2, verified migration
+
+See commits `e2db973`, `cdfeb21`.
+
+## [Released to branch] — Release 1 (Core training MVP)
 
 ### 2026‑07‑26 — Release 1 verification & refinement pass
 

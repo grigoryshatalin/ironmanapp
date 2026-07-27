@@ -121,6 +121,50 @@ enum A11y {
         static let authStatus = "notifications.authStatus"
         static let openSettings = "notifications.openSettings"
         static func category(_ raw: String) -> String { "notifications.category.\(raw)" }
+        static let sendTest = "notifications.sendTest"
+    }
+
+    /// Release 2 — Health (§R).
+    enum Health {
+        static let settingsLink = "health.settingsLink"
+        static let status = "health.status"
+        static let connect = "health.connect"
+        static let disconnect = "health.disconnect"
+        static let importToggle = "health.importToggle"
+        static let exportToggle = "health.exportToggle"
+        static let exportState = "health.exportState"
+        static let exportOpenSettings = "health.exportOpenSettings"
+        static let saveToHealth = "health.saveToHealth"
+        static let retryExport = "health.retryExport"
+        static let lastImport = "health.lastImport"
+        static let errorState = "health.errorState"
+        static let skipped = "health.skipped"
+        static let rescan = "health.rescan"
+        static let rawCount = "health.rawCount"
+        static let unmapped = "health.unmapped"
+        static let readAccessHint = "health.readAccessHint"
+        static let openSystemSettings = "health.openSystemSettings"
+        static let inboxLink = "health.inboxLink"
+        static let inboxEmpty = "health.inbox.empty"
+        static func inboxRow(_ index: Int) -> String { "health.inbox.row.\(index)" }
+        static func confirmMatch(_ index: Int) -> String { "health.inbox.confirm.\(index)" }
+        static func rejectMatch(_ index: Int) -> String { "health.inbox.reject.\(index)" }
+        static func chooseOther(_ index: Int) -> String { "health.inbox.choose.\(index)" }
+        static func keepUnplanned(_ index: Int) -> String { "health.inbox.unplanned.\(index)" }
+    }
+
+    /// Release 2 — WorkoutKit (§R).
+    enum WorkoutKit {
+        static let settingsLink = "workoutkit.settingsLink"
+        static let authorization = "workoutkit.authorization"
+        static let enableToggle = "workoutkit.enableToggle"
+        static let horizon = "workoutkit.horizon"
+        static let lastSync = "workoutkit.lastSync"
+        static let failure = "workoutkit.failure"
+        static let resync = "workoutkit.resync"
+        static let removeAll = "workoutkit.removeAll"
+        static func previewRow(_ index: Int) -> String { "workoutkit.preview.\(index)" }
+        static func approve(_ index: Int) -> String { "workoutkit.approve.\(index)" }
     }
 
     enum Alert {

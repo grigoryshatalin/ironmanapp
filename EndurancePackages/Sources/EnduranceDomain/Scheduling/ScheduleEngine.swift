@@ -95,6 +95,10 @@ public struct ScheduleEngine: Sendable {
         config: ScheduleConfiguration
     ) throws -> [ScheduledWorkout] {
         let start = try startDay(plan: plan, config: config)
+        // The weekday plan day 0 genuinely lands on. Both anchors resolve here,
+        // so a race-date-anchored plan (which counts back 251 days onto an
+        // arbitrary weekday) is handled the same as a start-date one.
+        let planStartWeekday = config.calendar.component(.weekday, from: start)
         var result: [ScheduledWorkout] = []
         result.reserveCapacity(plan.weeks.reduce(0) { $0 + $1.days.reduce(0) { $0 + $1.workouts.count } })
 
@@ -102,7 +106,7 @@ public struct ScheduleEngine: Sendable {
             // Honour the athlete's preferred long-ride / long-run / rest days by
             // permuting whole days within the week (§7). Identity layout when no
             // preference was expressed, so the plan's own rhythm is used as-is.
-            let layout = WeekdayLayout.make(for: week, config: config)
+            let layout = WeekdayLayout.make(for: week, config: config, planStartWeekday: planStartWeekday)
             let weekFirstDayIndex = (week.weekNumber - 1) * 7
 
             for day in week.days.sorted(by: { $0.weekdayOffset < $1.weekdayOffset }) {

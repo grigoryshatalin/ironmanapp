@@ -103,3 +103,50 @@ seek qualified professional guidance where appropriate, and do not ignore pain,
 illness, dizziness, chest symptoms, or unusual fatigue. Where required (App Store
 policy effective 2026-03-26 for Health & Fitness apps in the US/UK/EEA), the
 non-medical-device status is declared in App Store Connect at submission.
+
+
+---
+
+# Release 2 — HealthKit
+
+## What Endurance reads
+
+Workouts, heart rate, running/cycling/swimming distance, and active energy —
+requested only when the athlete taps **Connect Health**.
+
+Not requested: resting heart rate, HRV, power, routes, sleep, nutrition,
+reproductive health, or clinical records. These are modelled but excluded from
+the request set, because no visible feature uses them.
+
+## What Endurance writes
+
+Only workouts the athlete logged in Endurance, and only after they enable
+**Save my logged workouts to Health**. Write access covers workouts, active
+energy, and distance — nothing else.
+
+Endurance never writes heart rate, power, cadence, or routes, because it has no
+genuine values for them. A manually logged session is marked
+`HKMetadataKeyWasUserEntered` so it is never mistaken for a recording.
+
+## Where it goes
+
+Nowhere. All HealthKit processing is on-device. There is no account, no server,
+no analytics, and no network code anywhere in the app.
+
+## Logging
+
+Health values are never logged. Export and import failures log a **stable
+category code** (`export.save_failed`), never a raw framework message, a health
+value, or a HealthKit UUID.
+
+## Disconnecting
+
+Stops import and export and clears Endurance's local integration records. It
+does **not** delete anything from Apple Health, and does not erase training
+history. Removing local connection records is a separate, explicit action.
+
+## Deletion
+
+Endurance can delete only workouts it created, verified twice — against its own
+export record and against HealthKit's own source attribution. It will never
+delete a workout created by Apple, Garmin, Strava, or any other app.

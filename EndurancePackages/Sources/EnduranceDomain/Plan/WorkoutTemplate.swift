@@ -14,6 +14,9 @@ public struct WorkoutTemplate: Codable, Sendable, Hashable, Identifiable {
     public var plannedDistanceMeters: Double?
     public var intensity: IntensityZone
     public var stressCategory: StressCategory
+    /// Pool/open-water/indoor/outdoor context when the authored plan genuinely
+    /// knows it. Unknown deliberately remains unknown rather than guessed.
+    public var workoutLocation: WorkoutLocation?
 
     /// Chronological order within its day (0-based). Two morning + evening
     /// sessions are ordered by this, then by preferred time.
@@ -50,6 +53,7 @@ public struct WorkoutTemplate: Codable, Sendable, Hashable, Identifiable {
         plannedDistanceMeters: Double? = nil,
         intensity: IntensityZone,
         stressCategory: StressCategory,
+        workoutLocation: WorkoutLocation? = nil,
         order: Int = 0,
         preferredHour: Int? = nil,
         preferredMinute: Int? = nil,
@@ -73,6 +77,7 @@ public struct WorkoutTemplate: Codable, Sendable, Hashable, Identifiable {
         self.plannedDistanceMeters = plannedDistanceMeters
         self.intensity = intensity
         self.stressCategory = stressCategory
+        self.workoutLocation = workoutLocation
         self.order = order
         self.preferredHour = preferredHour
         self.preferredMinute = preferredMinute
@@ -88,4 +93,14 @@ public struct WorkoutTemplate: Codable, Sendable, Hashable, Identifiable {
         self.brickGroupID = brickGroupID
         self.isOptional = isOptional
     }
+}
+
+/// Framework-neutral workout location. This belongs to immutable plan content,
+/// not to the WorkoutKit adapter, because the same fact is useful to HealthKit,
+/// Watch, and future weather guidance.
+public enum WorkoutLocation: String, Codable, Sendable, Hashable {
+    case indoor
+    case outdoor
+    case pool
+    case openWater
 }
