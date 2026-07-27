@@ -363,7 +363,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "6D391106-1421-56A7-8312-C99058DBD2BD",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -1237,7 +1237,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "D4B523ED-15F9-5B0E-83E0-F652A105F5AD",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -2111,7 +2111,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "1D2A4FF2-8BB9-56D5-AF30-347218A94AD6",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -2923,7 +2923,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "6EFD244B-2BB6-5591-BE10-60C6340E86C2",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -3734,7 +3734,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "E6B8DB9C-7A13-5E65-A8F3-7F35B6729B7A",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -4608,7 +4608,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "0B7E32E4-BD16-533B-B3EB-6CC0A6CA88BA",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -5482,7 +5482,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "7B4F1ABB-6ED8-50E9-B3CB-644B6821A0A3",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -6294,7 +6294,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "6CA1BFC9-A3CA-54BF-88C8-625C4765FD87",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -7105,7 +7105,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "7AA661E3-4830-5816-BAC3-968AF4F98D7A",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -8021,7 +8021,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "F01E1423-6EB8-5F67-8ED9-690B4B449D20",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -8937,7 +8937,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "481F5D7B-1C1F-5505-B3BD-44369775F40A",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -9791,7 +9791,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "4C32BCB6-36FE-548A-B92B-AB365C64B5D2",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -10602,7 +10602,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "6FF62F62-6D9E-51A3-A6BF-A28E7BF40E86",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -11518,7 +11518,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "5299C254-A130-58C9-AAB2-D3A793881C26",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -12434,7 +12434,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "4DD10E07-3D69-56A7-9FBD-9BF0B29FA9C8",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -13288,7 +13288,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "1F530EFD-EB5E-5081-89BE-C3C7D1F771FD",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -14099,7 +14099,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "B810A529-8583-5B16-B0CE-E36F4B061DF5",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -15016,7 +15016,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "338FDBC1-E3EB-5442-8FF8-404A2B68DBCF",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -15933,7 +15933,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "CFACC76F-440F-5DF4-81FA-DADFFBA9EEC6",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -16788,7 +16788,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "515693E8-3679-5886-85E7-C983A438BD9C",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -17600,7 +17600,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "70832DB1-0C41-59F5-83BC-AF6BB62AB56D",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -18518,7 +18518,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "F1B9EAAE-EF52-51FE-B561-5FFBB3BB34D2",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -19436,7 +19436,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "A51A6DC8-1E09-50E6-BB1E-3CD470DA09E9",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -20292,7 +20292,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "4E7E486A-6CF8-5BDA-B806-1C37E32C52D2",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -21105,7 +21105,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "127844AF-9C7C-56B7-8C40-D40DF894CE38",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -21981,7 +21981,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "6AB45F2E-A8D8-5CF5-AD13-6004E2DFA9F7",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -22857,7 +22857,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "7ECD56CA-D116-58A0-9144-10BC80A9786B",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -23671,7 +23671,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "59EDB41B-1740-568E-82FE-0C3265D3003E",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -24442,7 +24442,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "CD894B11-FC3B-565F-B46A-E3EBB8A6955A",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -25276,7 +25276,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "62766704-AA60-523D-AE12-C7DEFFE9B323",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -26110,7 +26110,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "0FA304FB-BA1F-593F-B543-29AEA9FBFE80",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -26924,7 +26924,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "18A87D36-EC84-596F-A42E-574AA06AAB56",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -27695,7 +27695,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "834421C9-6D18-50EA-969A-97AA01A15D2B",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -28529,7 +28529,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "A5BF52C8-5AD4-5A91-B4E0-E94625C5BE8B",
                       "isOpenGoal" : false,
                       "kind" : "recovery",
@@ -29363,7 +29363,7 @@
                       "childSteps" : [
 
                       ],
-                      "durationSeconds" : 0,
+                      "durationSeconds" : 20,
                       "id" : "5034960B-80C5-5204-9DCF-FB1A1301F4A1",
                       "isOpenGoal" : false,
                       "kind" : "recovery",

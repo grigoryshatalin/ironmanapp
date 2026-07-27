@@ -11,8 +11,14 @@ enum Sessions {
     static func clamp(_ v: Int, _ lo: Int, _ hi: Int) -> Int { min(hi, max(lo, v)) }
     static func round50(_ m: Double) -> Double { (m / 50).rounded() * 50 }
 
-    static func step(_ kind: StepKind, _ label: String, min: Int? = nil, m: Double? = nil, z: IntensityZone? = nil, reps: Int = 1, children: [WorkoutStep] = [], note: String? = nil) -> WorkoutStep {
-        WorkoutStep(kind: kind, label: label, durationSeconds: min.map { $0 * 60 }, distanceMeters: m, intensity: z, repeats: reps, childSteps: children, note: note)
+    /// - Parameter sec: seconds, for steps shorter than a minute. The helper
+    ///   originally took whole minutes only, so a 20-second rest could not be
+    ///   expressed and was written as `min: 0` with the real duration left in the
+    ///   label text. That produced a step with no goal WorkoutKit could convert,
+    ///   which refused the whole session — 35 swims never reached the Watch.
+    static func step(_ kind: StepKind, _ label: String, min: Int? = nil, sec: Int? = nil, m: Double? = nil, z: IntensityZone? = nil, reps: Int = 1, children: [WorkoutStep] = [], note: String? = nil) -> WorkoutStep {
+        let seconds = sec ?? min.map { $0 * 60 }
+        return WorkoutStep(kind: kind, label: label, durationSeconds: seconds, distanceMeters: m, intensity: z, repeats: reps, childSteps: children, note: note)
     }
 
     // MARK: Swim
@@ -25,7 +31,7 @@ enum Sessions {
             id: id(w, o, 0), sport: .swim, title: "Swim endurance", objective: "Steady aerobic swimming with relaxed form.",
             plannedDurationMinutes: minutes, plannedDistanceMeters: distance, intensity: .endurance, stressCategory: .moderate,
             warmup: [step(.warmup, "Easy swim", min: 6, z: .recovery), step(.drill, "Drills", min: 4, note: "Catch‑up + single‑arm")],
-            mainSet: [step(.work, "\(reps) × 100 steady", z: .endurance, reps: reps, children: [step(.work, "100 steady", m: 100, z: .endurance), step(.recovery, "20 s rest", min: 0)])],
+            mainSet: [step(.work, "\(reps) × 100 steady", z: .endurance, reps: reps, children: [step(.work, "100 steady", m: 100, z: .endurance), step(.recovery, "20 s rest", sec: 20)])],
             cooldown: [step(.cooldown, "Easy swim", min: 5, z: .recovery)],
             techniqueCues: ["High‑elbow catch", "Exhale steadily underwater", "Long, relaxed stroke — count strokes per length"])
     }
