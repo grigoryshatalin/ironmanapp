@@ -339,4 +339,40 @@ struct HealthActivityMappingTests {
         #expect(!HealthCapability.heartRate.isWritable, "Endurance never writes heart rate")
         #expect(!HealthCapability.restingHeartRate.isWritable)
     }
+
+    // MARK: - Metadata key generations (regression)
+
+    /// Workouts exported before the metadata prefix was corrected carry only the
+    /// old key. If that key stops being read, those workouts become invisible to
+    /// orphan recovery and duplicate prevention — and Endurance would export
+    /// them again, producing exactly the duplicate §O exists to prevent.
+    @Test("An export written with the legacy metadata prefix is still recognised")
+    func legacyMetadataStillResolves() {
+        let executionID = UUID()
+        let legacy: [String: Any] = [
+            HealthWorkoutExportPayload.MetadataKey.Legacy.executionID: executionID.uuidString
+        ]
+        #expect(HealthWorkoutExportPayload.executionID(fromMetadata: legacy) == executionID)
+    }
+
+    @Test("The current metadata prefix resolves too")
+    func currentMetadataResolves() {
+        let executionID = UUID()
+        let current: [String: Any] = [
+            HealthWorkoutExportPayload.MetadataKey.executionID: executionID.uuidString
+        ]
+        #expect(HealthWorkoutExportPayload.executionID(fromMetadata: current) == executionID)
+    }
+
+    /// The two generations must stay distinct: if the "legacy" constant were
+    /// ever updated to match the current one, the compatibility path would
+    /// silently stop covering anything.
+    @Test("Legacy and current metadata keys are genuinely different")
+    func keyGenerationsAreDistinct() {
+        #expect(HealthWorkoutExportPayload.MetadataKey.executionID
+                != HealthWorkoutExportPayload.MetadataKey.Legacy.executionID)
+        #expect(!HealthWorkoutExportPayload.MetadataKey.all.contains("com.example.endurance.executionID"),
+                "the placeholder prefix must never be written again")
+    }
+
 }

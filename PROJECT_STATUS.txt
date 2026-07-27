@@ -373,7 +373,7 @@ Full build and test:
 Run it and look at it:
   open -a Simulator
   xcrun simctl install booted <DerivedData>/Build/Products/Debug-iphonesimulator/Endurance.app
-  xcrun simctl launch booted com.example.endurance
+  xcrun simctl launch booted com.grigoryshatalin.endurance
   xcrun simctl io booted screenshot shot.png
 
 Physical device: open Endurance.xcodeproj, set a development team and a unique

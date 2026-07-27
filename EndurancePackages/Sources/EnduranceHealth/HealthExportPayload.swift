@@ -78,16 +78,37 @@ public struct HealthWorkoutExportPayload: Sendable, Hashable {
     /// Reverse-DNS namespaced so they cannot collide with Apple's own keys or
     /// another app's. These are what make orphan recovery possible: a workout
     /// saved but never linked locally can still be found by its execution id.
+    /// Deliberately string literals rather than derived from
+    /// `Bundle.main.bundleIdentifier`. These keys are written into HealthKit and
+    /// persist beyond any single build: deriving them would mean a bundle
+    /// identifier change silently orphaned every workout already exported.
     public enum MetadataKey {
-        public static let executionID = "com.example.endurance.executionID"
-        public static let scheduledWorkoutID = "com.example.endurance.scheduledWorkoutID"
-        public static let idempotencyKey = "com.example.endurance.idempotencyKey"
-        public static let exportVersion = "com.example.endurance.exportVersion"
-        public static let schemaVersion = "com.example.endurance.schemaVersion"
+        private static let prefix = "com.grigoryshatalin.endurance"
+
+        public static let executionID = "\(prefix).executionID"
+        public static let scheduledWorkoutID = "\(prefix).scheduledWorkoutID"
+        public static let idempotencyKey = "\(prefix).idempotencyKey"
+        public static let exportVersion = "\(prefix).exportVersion"
+        public static let schemaVersion = "\(prefix).schemaVersion"
 
         public static let all: [String] = [
             executionID, scheduledWorkoutID, idempotencyKey, exportVersion, schemaVersion,
         ]
+
+        /// Keys written before the placeholder `com.example` prefix was
+        /// corrected. **Read-only** — never written again, but never dropped
+        /// either: workouts already in HealthKit still carry them, and they are
+        /// what makes an orphaned export findable and a duplicate avoidable.
+        /// Removing this is a data-loss change, not a cleanup.
+        public enum Legacy {
+            private static let prefix = "com.example.endurance"
+
+            public static let executionID = "\(prefix).executionID"
+            public static let scheduledWorkoutID = "\(prefix).scheduledWorkoutID"
+            public static let idempotencyKey = "\(prefix).idempotencyKey"
+
+            public static let all: [String] = [executionID, scheduledWorkoutID, idempotencyKey]
+        }
     }
 
     /// The metadata dictionary, as plain values. Apple's own keys (indoor,
@@ -109,7 +130,10 @@ public struct HealthWorkoutExportPayload: Sendable, Hashable {
     /// Recover the execution identity from metadata read back out of HealthKit,
     /// which is how an orphaned export is reconnected (§9).
     public static func executionID(fromMetadata metadata: [String: Any]?) -> UUID? {
-        guard let raw = metadata?[MetadataKey.executionID] as? String else { return nil }
+        let raw = (metadata?[MetadataKey.executionID] as? String)
+            // Exports written before the key prefix was corrected.
+            ?? (metadata?[MetadataKey.Legacy.executionID] as? String)
+        guard let raw else { return nil }
         return UUID(uuidString: raw)
     }
 }

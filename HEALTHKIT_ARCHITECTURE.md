@@ -210,11 +210,19 @@ sensor measurement Endurance did not receive.
 | `HKMetadataKeyWasUserEntered` | Distinguishes a hand-logged session from a recording |
 | `HKMetadataKeyIndoorWorkout` | When known |
 | `HKMetadataKeySwimmingLocationType` | Pool vs open water |
-| `com.example.endurance.executionID` | **Orphan recovery** — see §8 |
-| `com.example.endurance.scheduledWorkoutID` | Link to the plan |
-| `com.example.endurance.idempotencyKey` | Duplicate prevention |
-| `com.example.endurance.exportVersion` | Payload shape version |
-| `com.example.endurance.schemaVersion` | App schema version |
+| `com.grigoryshatalin.endurance.executionID` | **Orphan recovery** — see §8 |
+| `com.grigoryshatalin.endurance.scheduledWorkoutID` | Link to the plan |
+| `com.grigoryshatalin.endurance.idempotencyKey` | Duplicate prevention |
+| `com.grigoryshatalin.endurance.exportVersion` | Payload shape version |
+| `com.grigoryshatalin.endurance.schemaVersion` | App schema version |
+
+These were originally written with a `com.example.endurance` prefix, carried over
+from the project template. The prefix is corrected, but the old keys are still
+**read**: `MetadataKey.Legacy` is queried alongside the current keys during
+orphan recovery, because a workout exported by an earlier build carries only the
+old key and failing to find it would mean re-exporting it as a duplicate (§O).
+Legacy keys are never written again, and must not be deleted — doing so is a
+data-loss change, not a cleanup.
 
 Endurance uses `HKWorkoutBuilder`, not the `HKWorkout` initialisers, which Apple
 deprecated in iOS 17. The builder also matches the "never fabricate" rule

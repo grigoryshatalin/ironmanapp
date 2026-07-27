@@ -245,9 +245,17 @@ public final class HealthKitWorkoutExporter: @unchecked Sendable {
     public func findExportedWorkout(executionID: UUID) async throws -> String? {
         guard isHealthDataAvailable else { return nil }
 
-        let predicate = HKQuery.predicateForObjects(
-            withMetadataKey: HealthWorkoutExportPayload.MetadataKey.executionID,
-            allowedValues: [executionID.uuidString])
+        // Both the current key and the pre-correction one: a workout exported
+        // by an earlier build carries only the legacy key, and failing to find
+        // it here would mean re-exporting it as a duplicate (§O).
+        let predicate = NSCompoundPredicate(orPredicateWithSubpredicates: [
+            HKQuery.predicateForObjects(
+                withMetadataKey: HealthWorkoutExportPayload.MetadataKey.executionID,
+                allowedValues: [executionID.uuidString]),
+            HKQuery.predicateForObjects(
+                withMetadataKey: HealthWorkoutExportPayload.MetadataKey.Legacy.executionID,
+                allowedValues: [executionID.uuidString]),
+        ])
 
         let workouts: [HKWorkout] = try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(

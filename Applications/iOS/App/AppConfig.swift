@@ -13,7 +13,7 @@ enum AppConfig {
     /// This app's bundle id. Used to recognise Endurance's own HealthKit
     /// exports so they are never re-imported as if they came from elsewhere
     /// (§O). Read from the bundle so a rename cannot silently break that check.
-    static let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.example.endurance"
+    static let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.grigoryshatalin.endurance"
 
     /// URL scheme for notification deep links (must match Info.plist).
     static let deepLinkScheme = "endurance"
