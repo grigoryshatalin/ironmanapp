@@ -8,7 +8,7 @@ enum AppConfig {
     static let productName = EnduranceDomain.productName
 
     /// App Group container id shared with widgets / watch / intents.
-    static let appGroupIdentifier = "group.com.example.endurance"
+    static let appGroupIdentifier = "group.com.grigoryshatalin.endurance"
 
     /// This app's bundle id. Used to recognise Endurance's own HealthKit
     /// exports so they are never re-imported as if they came from elsewhere

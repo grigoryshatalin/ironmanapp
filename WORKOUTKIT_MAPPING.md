@@ -88,9 +88,61 @@ behaviour was technically correct and practically useless.
 | Run | `running` |
 | Bike | `cycling` |
 | Swim | `swimming` |
-| Strength, Mobility, Recovery | **unsupported** — no honest equivalent |
+| Strength | `highIntensityIntervalTraining` — a deliberate approximation, see below |
+| Mobility, Recovery | **unsupported** — no honest equivalent |
 | Brick | **unsupported** — needs linked components |
 | Race | **unsupported** — needs structured multisport |
+
+### Why strength is filed as HIIT
+
+There is no strength activity WorkoutKit will schedule that also carries
+interval structure. The original policy — "no honest equivalent, send nothing" —
+meant every strength session in the plan silently never reached the Watch: 39 of
+382 sessions, none of them schedulable.
+
+HIIT accepts a time goal and interval blocks, which is structurally what a
+strength circuit is, and the Watch renders it as a real workout the athlete can
+start and complete. That is worth more than accuracy of the label.
+
+The cost is accepted explicitly: the resulting HealthKit workout is recorded as
+HIIT, not strength training. `HealthActivityMapping` therefore maps HIIT
+(raw value 63) back to `.strength` on import, so a session completed on the
+Watch returns and matches its planned session instead of being dropped as an
+unmapped activity type. The same mapping means a HIIT workout the athlete does
+independently also files as strength — a consequence of the round trip, not an
+oversight.
+
+Mobility and recovery remain unsupported. They carry no interval structure worth
+sending, and approximating them would put a workout on someone's wrist that does
+not describe what they are doing.
+
+**Export is unchanged**: a strength session logged in Endurance is still written
+to HealthKit as `traditionalStrengthTraining`, which is accurate and which the
+Fitness app represents properly. Only the Watch-scheduling path approximates.
+
+### Coverage against the real 36-week plan
+
+| Sport | Schedulable / total |
+|---|---|
+| Run | 106 / 141 |
+| Swim | 93 / 93 |
+| Bike | 38 / 73 |
+| Strength | 39 / 39 |
+| Mobility | 0 / 35 |
+| Race | 0 / 1 |
+| **Total** | **276 / 382** |
+
+All remaining refusals are brick components (35 runs, 35 rides) and race legs,
+which need linked/structured multisport, plus mobility, which is refused by
+policy. Every refusal carries a named reason; none is a mystery.
+
+Swim was 58/93 until a plan **data** defect was fixed: a "20 s rest" step carried
+`durationSeconds: 0` because the generator helper only accepted whole minutes, so
+the duration lived in the label text. A leaf step with no duration, distance or
+open goal cannot be converted, and one such step refuses the whole session. Measured by `reportCoverage`, which prints
+these numbers on every test run so a policy change shows up as a coverage change.
+
+---
 
 Goals: distance preferred when the plan states one, else planned time, else
 open. A pool swim with both distance and time uses the pool goal; open water

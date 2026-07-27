@@ -8,6 +8,45 @@ absolute.
 
 ## [Unreleased] — Release 2 (Apple ecosystem) in progress
 
+### 2026‑07‑27 — Strength sessions now reach the Apple Watch
+
+Changed
+- **Strength is scheduled as `highIntensityIntervalTraining`.** Previously
+  refused as "no honest equivalent", which meant all 39 strength sessions in the
+  36‑week plan silently never reached the Watch. HIIT carries a time goal and
+  interval blocks — structurally what a strength circuit is — and the Watch
+  renders it as a workout the athlete can start and complete.
+- **HIIT maps back to `.strength` on import**, closing the round trip: a session
+  completed on the Watch is recorded by HealthKit as HIIT, and without this it
+  would be dropped as an unmapped activity type and never match its planned
+  session. Consequence accepted deliberately: an independently‑performed HIIT
+  workout also files as strength.
+- Export is unchanged — a strength session logged in Endurance is still written
+  as `traditionalStrengthTraining`. Only Watch scheduling approximates.
+- Mobility and recovery remain deliberately unsupported.
+
+Fixed
+- **Every swim was unschedulable because of a plan data defect.** The `step`
+  generator helper accepted whole minutes only, so a 20‑second rest could not be
+  expressed: it was written as `min: 0` with the real duration left in the label
+  text. That produced a leaf step with no duration, distance or open goal, which
+  WorkoutKit cannot convert — and one such step refuses the entire session. The
+  converter was right to refuse rather than invent an interval; the plan was
+  wrong to omit it. The helper now takes `sec:`, and the JSON was regenerated
+  from the generator (a test asserts the two stay in sync).
+- **App Group identifier was still the placeholder** `group.com.example.endurance`
+  while the bundle is `com.grigoryshatalin.endurance`. An unregistered group makes
+  `containerURL(forSecurityApplicationGroupIdentifier:)` return `nil`, and
+  `SnapshotWriter.write` opens with `guard let url else { return }` — so the
+  shared Today snapshot was silently writing nothing. This is the mechanism
+  Stages 6 (Watch) and 8 (widgets) both read from, so both would have come up
+  empty with no error.
+
+Watch coverage across the bundled plan: **276/382 sessions, up from 202** —
+strength 39/39 and swim 93/93, both previously zero and 58 respectively.
+`reportCoverage` prints the per‑sport breakdown and every refusal reason on each
+run, so a policy or data change shows up as a coverage change.
+
 ### 2026‑07‑27 — Device verification: five defects only hardware could expose
 
 Every item here was found by running the app on a physical iPhone. None was
