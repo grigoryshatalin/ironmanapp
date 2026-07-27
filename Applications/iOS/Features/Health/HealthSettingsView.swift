@@ -66,6 +66,37 @@ struct HealthSettingsView: View {
                 }
                 .accessibilityIdentifier(A11y.Health.lastImport)
             }
+            if health.lastSuccessfulImport != nil {
+                LabeledContent("Workouts read from Health") {
+                    Text("\(health.lastRawSampleCount)").foregroundStyle(.secondary)
+                }
+                .accessibilityIdentifier(A11y.Health.rawCount)
+            }
+            // The one failure HealthKit refuses to report. A full rescan that
+            // comes back empty means either the store really is empty or read
+            // access was withheld — and the API cannot distinguish them, so say
+            // so plainly and point at the only place it can be fixed.
+            if health.lastFullScanReturnedNothing {
+                Label {
+                    Text("Health returned no workouts at all. If you can see workouts in the Fitness or Health app, Endurance hasn’t been granted permission to read them.\n\nOpen Settings → Health → Data Access & Devices → Endurance, and turn on Workouts under “Allow Endurance to Read Data”.")
+                } icon: {
+                    Image(systemName: "lock.circle")
+                }
+                .font(.footnote)
+                .accessibilityIdentifier(A11y.Health.readAccessHint)
+            }
+            if health.lastUnmappedCount > 0 {
+                Text("\(health.lastUnmappedCount) workouts were of a type Endurance doesn’t track.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier(A11y.Health.unmapped)
+            }
+            if health.lastSkippedTooShort > 0 {
+                Text("\(health.lastSkippedTooShort) very short activities weren’t imported. Anything under 30 seconds is treated as an accidental start.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier(A11y.Health.skipped)
+            }
             if health.lastErrorCode != nil {
                 Label("Last import didn’t finish. Your training data is unchanged — pull down to try again.",
                       systemImage: "exclamationmark.circle")
@@ -124,7 +155,13 @@ struct HealthSettingsView: View {
                 .font(.footnote)
                 .accessibilityIdentifier(A11y.Health.exportState)
                 if export.writeStatus == .denied {
-                    Button("Open Health permissions") {
+                    Button("Re-scan Health from scratch") {
+                Task { await health.rescanFromScratch() }
+            }
+            .disabled(!health.isImportEnabled || health.isImporting)
+            .accessibilityIdentifier(A11y.Health.rescan)
+
+            Button("Open Health permissions") {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
                             UIApplication.shared.open(url)
                         }
@@ -200,6 +237,12 @@ struct HealthSettingsView: View {
 
     private var manageSection: some View {
         Section {
+            Button("Re-scan Health from scratch") {
+                Task { await health.rescanFromScratch() }
+            }
+            .disabled(!health.isImportEnabled || health.isImporting)
+            .accessibilityIdentifier(A11y.Health.rescan)
+
             Button("Open Health permissions") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
@@ -214,7 +257,7 @@ struct HealthSettingsView: View {
             }
             .accessibilityIdentifier(A11y.Health.disconnect)
         } footer: {
-            Text("Disconnecting stops importing and removes Endurance’s import records. Your training history stays, and workouts owned by other apps are never touched.")
+            Text("Re-scanning re-reads every workout in Health. Use it if something you expected didn’t appear. Decisions you already made are kept. Disconnecting stops importing and removes Endurance’s import records. Your training history stays, and workouts owned by other apps are never touched.")
         }
     }
 

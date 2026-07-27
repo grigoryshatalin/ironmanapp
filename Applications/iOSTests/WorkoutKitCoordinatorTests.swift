@@ -63,7 +63,13 @@ final class WorkoutKitCoordinatorTests: XCTestCase {
     private var scheduler: FakeScheduler!
     private var coordinator: WorkoutKitCoordinator!
 
+    private var defaultsSuite: String!
+
     override func setUp() async throws {
+        // Never touch UserDefaults.standard from tests: the integration
+        // toggles are persisted there, and a leaked value silently changes
+        // another test's starting state.
+        defaultsSuite = "test.\(UUID().uuidString)"
         let config = ModelConfiguration(schema: EnduranceSchema.current, isStoredInMemoryOnly: true)
         container = try ModelContainer(for: EnduranceSchema.current, configurations: [config])
         store = WorkoutStore(modelContainer: container)
@@ -77,11 +83,15 @@ final class WorkoutKitCoordinatorTests: XCTestCase {
             raceLocation: nil)
 
         scheduler = FakeScheduler()
-        coordinator = WorkoutKitCoordinator(scheduler: scheduler, container: container, workoutStore: store)
+        coordinator = WorkoutKitCoordinator(
+            scheduler: scheduler, container: container, workoutStore: store,
+            preferencesStore: IntegrationPreferencesStore(
+                defaults: UserDefaults(suiteName: defaultsSuite)!))
         await coordinator.refreshAuthorization()
     }
 
     override func tearDown() async throws {
+        if let defaultsSuite { UserDefaults.standard.removePersistentDomain(forName: defaultsSuite) }
         coordinator = nil
         scheduler = nil
         store = nil
@@ -116,10 +126,32 @@ final class WorkoutKitCoordinatorTests: XCTestCase {
                        "scheduling is off by default and must not push anything")
     }
 
-    func testEnablingRequestsAuthorizationAndSynchronizes() async {
+    func testEnablingRequestsAuthorizationAndSynchronizes() async throws {
+        // The default `.nextWorkout` horizon schedules exactly one session, and
+        // whether that session is convertible depends on which weekday the suite
+        // runs — day one of the bundled plan is mobility, which WorkoutKit
+        // cannot represent. This test was therefore green on some days and red
+        // on others, with nothing in the product changing. Widen the horizon so
+        // it asserts what it means to assert: that enabling requests
+        // authorization and then actually synchronizes.
+        coordinator.preferences.horizon = .days7
+        let schedulable = try XCTUnwrap(
+            store.allWorkouts
+                .filter {
+                    $0.status == .planned
+                        && $0.plannedStart >= Date()
+                        && $0.plannedStart <= Date().addingTimeInterval(7 * 86_400)
+                }
+                .sorted { $0.plannedStart < $1.plannedStart }
+                .first { coordinator.conversion(for: $0).outcome.isSchedulable },
+            "a 7-day window of the bundled plan must contain a schedulable session")
+
         await coordinator.enableScheduling()
+
         XCTAssertTrue(coordinator.preferences.isEnabled)
         XCTAssertGreaterThan(scheduler.scheduleCalls, 0)
+        XCTAssertNotNil(scheduler.scheduled[schedulable.id],
+                        "the schedulable session in the window should have been sent")
     }
 
     func testDeniedAuthorizationSchedulesNothing() async {

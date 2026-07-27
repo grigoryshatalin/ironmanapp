@@ -104,9 +104,18 @@ public enum HealthCapabilityPlan {
 /// Decides whether an imported activity is worth surfacing at all (§D).
 public enum HealthImportFilter {
 
-    /// Activities shorter than this are almost always accidental starts or
-    /// stray Watch taps; surfacing them would make the Health Inbox noise.
-    public static let minimumDurationSeconds = 5 * 60
+    /// Floor for surfacing an imported activity.
+    ///
+    /// This was 5 minutes, on the assumption that anything shorter was "almost
+    /// always accidental starts or stray Watch taps". That was wrong, and it was
+    /// wrong silently: a deliberately logged 1-minute core session is real
+    /// training, and it vanished with no explanation — indistinguishable from
+    /// the feature being broken. Found by using the app, not by any test.
+    ///
+    /// 30 seconds still screens genuinely accidental taps, which are ended
+    /// almost immediately, while keeping short deliberate work. Anything
+    /// filtered is now reported rather than dropped in silence.
+    public static let minimumDurationSeconds = 30
 
     public static func isWorthImporting(_ summary: ExternalWorkoutSummary) -> Bool {
         guard !summary.isDeletedAtSource else { return false }

@@ -69,6 +69,12 @@ final class AppEnvironment {
             AppLog.persistence.error("Load failed: \(error)")
             alert = .dataError
         }
+        // Restore persisted integration toggles BEFORE anything reads them:
+        // import and rescan both guard on `isImportEnabled`.
+        health.restorePreferences()
+        await health.refreshConnectionState()
+        healthExport.restorePreferences()
+        workoutKit.restorePreferences()
         healthExport.refreshAuthorization()
         // An export interrupted between HealthKit's save and our persistence
         // must be reconnected, not left as an invisible orphan (§9).

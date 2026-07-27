@@ -71,9 +71,32 @@ final class HealthExportCoordinator {
     private var inFlight: Set<UUID> = []
 
     /// Whether newly completed sessions are exported automatically (§5).
-    var isAutoExportEnabled = false
+    /// Backed by the same persisted row as the import toggle: auto-export that
+    /// forgets itself on relaunch is the same defect in a different feature.
+    var isAutoExportEnabled = false {
+        didSet {
+            guard !isRestoringPreferences else { return }
+            var prefs = preferencesStore.load()
+            prefs.healthAutoExportEnabled = isAutoExportEnabled
+            preferencesStore.save(prefs)
+        }
+    }
 
-    init(exporter: any HealthExporting, container: ModelContainer) {
+    private let preferencesStore: IntegrationPreferencesStore
+    private var isRestoringPreferences = false
+
+    func restorePreferences() {
+        isRestoringPreferences = true
+        isAutoExportEnabled = preferencesStore.load().healthAutoExportEnabled
+        isRestoringPreferences = false
+    }
+
+    init(
+        exporter: any HealthExporting,
+        container: ModelContainer,
+        preferencesStore: IntegrationPreferencesStore = IntegrationPreferencesStore()
+    ) {
+        self.preferencesStore = preferencesStore
         self.exporter = exporter
         self.container = container
     }

@@ -45,18 +45,57 @@ final class HealthCoordinator {
     private(set) var inbox: [InboxItem] = []
     private(set) var lastSuccessfulImport: Date?
     private(set) var lastErrorCode: String?
+    /// What the last import chose not to surface, so a silent skip is visible.
+    private(set) var lastSkippedTooShort = 0
+    private(set) var lastSkippedSelfAuthored = 0
+    /// Raw workouts HealthKit returned on the last pass, and how many carried an
+    /// activity type Endurance has no mapping for. Both are shown in Settings:
+    /// an import that returns nothing must be able to say *why*, and HealthKit
+    /// will not tell us whether read access was withheld.
+    private(set) var lastRawSampleCount = 0
+    private(set) var lastUnmappedCount = 0
+    /// True when the last pass read the entire store (a rescan) and HealthKit
+    /// still returned nothing at all — the signature of missing read access.
+    private(set) var lastFullScanReturnedNothing = false
     private(set) var isImporting = false
 
     /// Athlete preferences. Import and export are independently opt-in (§F).
-    var isImportEnabled = false
-    var isExportEnabled = false
+    /// Persisted — see `WorkoutStore.IntegrationPreferences`.
+    var isImportEnabled = false {
+        didSet { persistPreferences() }
+    }
+    var isExportEnabled = false {
+        didSet { persistPreferences() }
+    }
+
+    private let preferencesStore: IntegrationPreferencesStore
+    private var isRestoringPreferences = false
+
+    private func persistPreferences() {
+        guard !isRestoringPreferences else { return }
+        var prefs = preferencesStore.load()
+        prefs.healthImportEnabled = isImportEnabled
+        prefs.healthExportEnabled = isExportEnabled
+        preferencesStore.save(prefs)
+    }
+
+    /// Restore persisted toggles at launch, before any import decision is made.
+    func restorePreferences() {
+        isRestoringPreferences = true
+        let prefs = preferencesStore.load()
+        isImportEnabled = prefs.healthImportEnabled
+        isExportEnabled = prefs.healthExportEnabled
+        isRestoringPreferences = false
+    }
 
     init(
         importer: any HealthWorkoutImporting,
         container: ModelContainer,
         workoutStore: WorkoutStore,
-        appBundleIdentifier: String = AppConfig.bundleIdentifier
+        appBundleIdentifier: String = AppConfig.bundleIdentifier,
+        preferencesStore: IntegrationPreferencesStore = IntegrationPreferencesStore()
     ) {
+        self.preferencesStore = preferencesStore
         self.importer = importer
         self.container = container
         self.workoutStore = workoutStore
@@ -73,7 +112,12 @@ final class HealthCoordinator {
             return
         }
         capabilityStates = await importer.authorizationStates(for: HealthCapabilityPlan.coreImport)
-        let everAsked = capabilityStates.contains { $0.status != .notDetermined }
+        // Whether we have asked is *our* fact to remember, not HealthKit's to
+        // report. Deriving it from `capabilityStates` was wrong: read statuses
+        // are always `.unknowable`, never `.notDetermined`, so the old test was
+        // true on first launch and `.notConnected` was unreachable — which hid
+        // the Connect button and made the read request impossible to trigger.
+        let everAsked = preferencesStore.load().hasRequestedHealthAuthorization
         connection = everAsked ? (isImportEnabled ? .connected : .importPaused) : .notConnected
         loadPersistedCursorState()
     }
@@ -86,6 +130,9 @@ final class HealthCoordinator {
         }
         do {
             capabilityStates = try await importer.requestAuthorization(for: HealthCapabilityPlan.coreImport)
+            var prefs = preferencesStore.load()
+            prefs.hasRequestedHealthAuthorization = true
+            preferencesStore.save(prefs)
             isImportEnabled = true
             connection = .connected
             await runImport()
@@ -114,6 +161,9 @@ final class HealthCoordinator {
 
     // MARK: - Import
 
+    /// Set for the duration of a rescan, so a zero result can be interpreted.
+    private var isFullScan = false
+
     func runImport() async {
         guard isImportEnabled, !isImporting else { return }
         isImporting = true
@@ -125,6 +175,13 @@ final class HealthCoordinator {
             let known = knownState()
             let outcome = reconciler.reconcile(batch, known: known)
 
+            lastSkippedTooShort = outcome.skippedTooShort.count
+            lastSkippedSelfAuthored = outcome.skippedSelfAuthored.count
+            lastRawSampleCount = batch.rawSampleCount
+            lastUnmappedCount = batch.unmappedSampleCount
+            // Only meaningful after a full scan: an incremental pass legitimately
+            // returns zero when nothing has changed since the last anchor.
+            if isFullScan { lastFullScanReturnedNothing = batch.rawSampleCount == 0 }
             try apply(outcome, cursor: batch.updatedCursor)
             rebuildInbox()
             lastSuccessfulImport = batch.updatedCursor.lastSuccessfulImport
@@ -154,6 +211,32 @@ final class HealthCoordinator {
         }
         persist(cursor: cursor)
         try context.save()
+    }
+
+    /// Discard the incremental anchor and re-read the whole store.
+    ///
+    /// Needed because filtering happens *after* the anchored query advances its
+    /// anchor: anything skipped is never offered again, so a change of policy —
+    /// like lowering the minimum duration — cannot recover previously discarded
+    /// activities. This is also the honest recovery path when an import looks
+    /// wrong and the athlete simply wants to start over.
+    ///
+    /// Match decisions are deliberately preserved, so a rescan does not
+    /// resurrect suggestions the athlete already rejected.
+    func rescanFromScratch() async {
+        guard isImportEnabled else { return }
+        do {
+            // Drop the cursor and every stored external record; keep decisions.
+            try context.delete(model: SDHealthImportCursor.self)
+            try context.delete(model: SDExternalWorkoutRecord.self)
+            try context.save()
+        } catch {
+            AppLog.persistence.error("Rescan reset failed: \(error)")
+            return
+        }
+        isFullScan = true
+        await runImport()
+        isFullScan = false
     }
 
     // MARK: - Inbox and decisions

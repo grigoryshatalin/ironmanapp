@@ -114,9 +114,8 @@ public final class HealthKitWorkoutImporter: HealthWorkoutImporting, @unchecked 
             store.execute(query)
         }
 
-        let summaries = samples
-            .compactMap { $0 as? HKWorkout }
-            .compactMap(summarize)
+        let workouts = samples.compactMap { $0 as? HKWorkout }
+        let summaries = workouts.compactMap(summarize)
 
         var updated = cursor
         updated.anchorData = Self.encodeAnchor(newAnchor)
@@ -127,7 +126,9 @@ public final class HealthKitWorkoutImporter: HealthWorkoutImporting, @unchecked 
         return HealthImportBatch(
             summaries: summaries,
             deletedProviderIDs: deletedObjects.map { $0.uuid.uuidString },
-            updatedCursor: updated)
+            updatedCursor: updated,
+            rawSampleCount: workouts.count,
+            unmappedSampleCount: workouts.count - summaries.count)
     }
 
     // MARK: - Mapping

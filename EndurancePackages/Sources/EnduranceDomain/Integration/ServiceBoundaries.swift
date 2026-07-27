@@ -55,14 +55,32 @@ public struct HealthImportBatch: Sendable, Hashable {
     public var deletedProviderIDs: [String]
     public var updatedCursor: ImportCursor
 
+    /// How many workout samples the provider actually handed back, before any
+    /// of Endurance's own mapping or filtering.
+    ///
+    /// Carried because HealthKit **cannot report read authorization**: a
+    /// withheld permission returns an empty result with no error, which is
+    /// indistinguishable from "you have no workouts". Without this count the
+    /// app can only render a blank inbox and leave the athlete guessing —
+    /// which is exactly what happened. `rawSampleCount == 0` alongside a
+    /// workout that is visible in Fitness is the signature of missing read
+    /// access, and the UI can finally say so.
+    public var rawSampleCount: Int
+    /// Samples dropped because their activity type has no Endurance mapping.
+    public var unmappedSampleCount: Int
+
     public init(
         summaries: [ExternalWorkoutSummary],
         deletedProviderIDs: [String] = [],
-        updatedCursor: ImportCursor
+        updatedCursor: ImportCursor,
+        rawSampleCount: Int = 0,
+        unmappedSampleCount: Int = 0
     ) {
         self.summaries = summaries
         self.deletedProviderIDs = deletedProviderIDs
         self.updatedCursor = updatedCursor
+        self.rawSampleCount = rawSampleCount
+        self.unmappedSampleCount = unmappedSampleCount
     }
 }
 

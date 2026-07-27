@@ -65,16 +65,26 @@ final class HealthExportTests: XCTestCase {
     private var exporter: FakeExporter!
     private var coordinator: HealthExportCoordinator!
 
+    private var defaultsSuite: String!
+
     override func setUp() async throws {
+        // Never touch UserDefaults.standard from tests: the integration
+        // toggles are persisted there, and a leaked value silently changes
+        // another test's starting state.
+        defaultsSuite = "test.\(UUID().uuidString)"
         let config = ModelConfiguration(schema: EnduranceSchema.current, isStoredInMemoryOnly: true)
         container = try ModelContainer(for: EnduranceSchema.current, configurations: [config])
         exporter = FakeExporter()
-        coordinator = HealthExportCoordinator(exporter: exporter, container: container)
+        coordinator = HealthExportCoordinator(
+            exporter: exporter, container: container,
+            preferencesStore: IntegrationPreferencesStore(
+                defaults: UserDefaults(suiteName: defaultsSuite)!))
         coordinator.refreshAuthorization()
         coordinator.isAutoExportEnabled = true
     }
 
     override func tearDown() async throws {
+        if let defaultsSuite { UserDefaults.standard.removePersistentDomain(forName: defaultsSuite) }
         coordinator = nil
         exporter = nil
         container = nil

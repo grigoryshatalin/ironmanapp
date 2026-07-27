@@ -55,6 +55,8 @@ final class HealthCoordinatorTests: XCTestCase {
     private var workoutStore: WorkoutStore!
     private var importer: FakeImporter!
     private var coordinator: HealthCoordinator!
+    private var preferencesStore: IntegrationPreferencesStore!
+    private var defaultsSuite: String!
 
     override func setUp() async throws {
         let config = ModelConfiguration(schema: EnduranceSchema.current, isStoredInMemoryOnly: true)
@@ -70,14 +72,21 @@ final class HealthCoordinatorTests: XCTestCase {
             raceLocation: nil)
 
         importer = FakeImporter()
+        // A scratch suite so toggles written here never touch the real defaults
+        // and never leak between tests.
+        defaultsSuite = "test.\(UUID().uuidString)"
+        preferencesStore = IntegrationPreferencesStore(
+            defaults: UserDefaults(suiteName: defaultsSuite)!)
         coordinator = HealthCoordinator(
             importer: importer,
             container: container,
             workoutStore: workoutStore,
-            appBundleIdentifier: "com.example.endurance")
+            appBundleIdentifier: "com.example.endurance",
+            preferencesStore: preferencesStore)
     }
 
     override func tearDown() async throws {
+        if let defaultsSuite { UserDefaults.standard.removePersistentDomain(forName: defaultsSuite) }
         coordinator = nil
         importer = nil
         workoutStore = nil
@@ -302,4 +311,89 @@ final class HealthCoordinatorTests: XCTestCase {
                       "disconnecting Health must never erase training history")
         XCTAssertEqual(workoutStore.allWorkouts.count, 382)
     }
+
+    // MARK: - Preference persistence (regression)
+
+    /// The toggle used to live only in memory, so every launch silently reset
+    /// import to off. Because both `runImport` and `rescanFromScratch` guard on
+    /// it, the feature looked broken rather than disabled: the Health Inbox
+    /// stayed empty and tapping "Re-scan" did nothing at all. Found by using the
+    /// app across a relaunch, which no test here did.
+    func testImportPreferenceSurvivesRelaunch() async throws {
+        coordinator.isImportEnabled = true
+        coordinator.isExportEnabled = true
+
+        // A fresh coordinator over the same store == a relaunch.
+        let relaunched = HealthCoordinator(
+            importer: FakeImporter(),
+            container: container,
+            workoutStore: workoutStore,
+            appBundleIdentifier: "com.example.endurance",
+            preferencesStore: preferencesStore)
+        relaunched.restorePreferences()
+
+        XCTAssertTrue(relaunched.isImportEnabled, "import toggle must survive relaunch")
+        XCTAssertTrue(relaunched.isExportEnabled, "export toggle must survive relaunch")
+    }
+
+    func testDisconnectPersistsAsOff() async throws {
+        coordinator.isImportEnabled = true
+        coordinator.disconnect()
+
+        let relaunched = HealthCoordinator(
+            importer: FakeImporter(),
+            container: container,
+            workoutStore: workoutStore,
+            appBundleIdentifier: "com.example.endurance",
+            preferencesStore: preferencesStore)
+        relaunched.restorePreferences()
+
+        XCTAssertFalse(relaunched.isImportEnabled, "disconnect must persist too")
+    }
+
+
+    // MARK: - Reachability of the read-authorization request (regression)
+
+    /// The bug that made the Health Inbox permanently empty.
+    ///
+    /// `connection` was derived from `capabilityStates`, testing for any status
+    /// other than `.notDetermined`. But read capabilities always report
+    /// `.unknowable` — HealthKit cannot disclose read authorization — so that
+    /// test was true before the app had ever asked for anything. `.notConnected`
+    /// became unreachable, the Connect button never appeared, and `connect()`
+    /// (the only caller of `requestAuthorization`) could never run. HealthKit
+    /// then returned an empty result with no error, which is indistinguishable
+    /// from having no workouts. Nothing failed; nothing was logged.
+    func testFreshInstallIsNotConnectedSoConnectCanBeOffered() async {
+        await coordinator.refreshConnectionState()
+        XCTAssertEqual(coordinator.connection, .notConnected,
+                       "a fresh install must offer Connect, or read access can never be requested")
+    }
+
+    func testConnectingRecordsThatWeAskedAndSurvivesRelaunch() async {
+        await coordinator.connect()
+        XCTAssertEqual(coordinator.connection, .connected)
+
+        let relaunched = HealthCoordinator(
+            importer: FakeImporter(),
+            container: container,
+            workoutStore: workoutStore,
+            appBundleIdentifier: "com.example.endurance",
+            preferencesStore: preferencesStore)
+        relaunched.restorePreferences()
+        await relaunched.refreshConnectionState()
+
+        XCTAssertNotEqual(relaunched.connection, .notConnected,
+                          "having asked must be remembered across launches")
+    }
+
+    /// Turning import off must not look like never having connected, or the app
+    /// would re-prompt for a permission iOS will silently refuse to re-ask for.
+    func testPausingImportIsDistinctFromNeverConnecting() async {
+        await coordinator.connect()
+        coordinator.isImportEnabled = false
+        await coordinator.refreshConnectionState()
+        XCTAssertEqual(coordinator.connection, .importPaused)
+    }
+
 }

@@ -84,11 +84,48 @@ it never has genuine values for them.
 HealthKit deliberately cannot tell an app whether reads were granted — that is
 how it keeps a withheld category invisible.
 
-Endurance therefore models authorization **per capability, per access**, and read
-capabilities resolve to `.unknowable` once asked. There is no global
-"HealthKit authorized" boolean anywhere in the codebase, and a test asserts we
-never report `.authorized` for a read. The UI says **"Connected"**, never
-"Authorized".
+Endurance therefore models authorization **per capability, per access**. Read
+capabilities resolve to `.unknowable` — **always, not "once asked"**. There is no
+global "HealthKit authorized" boolean anywhere in the codebase, and a test
+asserts we never report `.authorized` for a read. The UI says **"Connected"**,
+never "Authorized".
+
+### "Have we asked?" is our fact to record
+
+`.unknowable` is returned unconditionally, so it carries **no information about
+whether the athlete was ever prompted**. Anything derived from it is a constant,
+not an observation.
+
+This was learned the hard way. `refreshConnectionState()` computed:
+
+```swift
+let everAsked = capabilityStates.contains { $0.status != .notDetermined }
+```
+
+Since read statuses are always `.unknowable`, and `.unknowable != .notDetermined`,
+`everAsked` was `true` on first launch — before anything had been requested.
+`.notConnected` became unreachable, so the Connect button never rendered, so
+`connect()` (the sole caller of `requestAuthorization`) could never run. The read
+request never reached HealthKit. The failure was silent in both directions: the
+query returns an **empty array with no error** when reads are unauthorized, which
+is indistinguishable from "this athlete has no workouts".
+
+The rule that follows: **whether we have prompted is persisted by us**
+(`IntegrationPreferences.hasRequestedHealthAuthorization`, device-local in
+`UserDefaults`). It is not inferable from HealthKit, and must never again be
+inferred from a capability status.
+
+A regression test asserts a fresh install reports `.notConnected`, because that
+is the only state from which read access can ever be requested.
+
+### Diagnosing an empty import
+
+Because an unauthorized read and an empty store are indistinguishable to the API,
+`HealthImportBatch` carries `rawSampleCount` — the number of samples HealthKit
+returned **before** any Endurance mapping or filtering. A *full rescan* returning
+zero, while workouts are visible in Fitness, is the signature of withheld read
+access, and the Health settings screen says so and names the Settings path. An
+*incremental* pass returning zero is normal and must not raise this.
 
 Write status *is* knowable and is reported honestly: `Ready to save`,
 `Permission needed`, `Partially available`, `Saving unavailable`, `Off`.
@@ -96,6 +133,16 @@ Write status *is* knowable and is reported honestly: `Ready to save`,
 ---
 
 ## 4. Import (Stage 2)
+
+> **Filtering happens after the anchor advances.** `HKAnchoredObjectQuery`
+> returns only what changed since the stored anchor, and the anchor moves
+> whether or not Endurance keeps what came back. Anything rejected by
+> `HealthImportFilter` or `HealthActivityMapping` is therefore **never offered
+> again**. A change to any import rule — the duration floor, the activity map,
+> the self-authored check — cannot retroactively recover what an earlier policy
+> discarded. `rescanFromScratch()` (drop the cursor and re-read the whole store,
+> preserving match decisions) is the only recovery path, and any rule change
+> should be shipped alongside a prompt to use it.
 
 `HKAnchoredObjectQuery` over `workoutType()`, with the anchor archived into
 `SDHealthImportCursor`. The store is never rescanned.

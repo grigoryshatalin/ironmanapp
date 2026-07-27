@@ -35,13 +35,37 @@ final class WorkoutKitCoordinator {
     private(set) var lastFailure: WorkoutKitFailureCategory?
 
     /// Athlete preferences. Off by default — nothing is scheduled unasked.
-    var preferences = WorkoutKitSchedulingPreferences()
+    /// Persisted — an in-memory copy silently reverted to "off" on every launch.
+    var preferences = WorkoutKitSchedulingPreferences() {
+        didSet { persistPreferences() }
+    }
+
+    private let preferencesStore: IntegrationPreferencesStore
+    private var isRestoringPreferences = false
+
+    private func persistPreferences() {
+        guard !isRestoringPreferences else { return }
+        var stored = preferencesStore.load()
+        stored.workoutKitEnabled = preferences.isEnabled
+        stored.workoutKitHorizon = preferences.horizon
+        preferencesStore.save(stored)
+    }
+
+    func restorePreferences() {
+        isRestoringPreferences = true
+        let stored = preferencesStore.load()
+        preferences.isEnabled = stored.workoutKitEnabled
+        preferences.horizon = stored.workoutKitHorizon
+        isRestoringPreferences = false
+    }
 
     init(
         scheduler: any WorkoutScheduling,
         container: ModelContainer,
-        workoutStore: WorkoutStore
+        workoutStore: WorkoutStore,
+        preferencesStore: IntegrationPreferencesStore = IntegrationPreferencesStore()
     ) {
+        self.preferencesStore = preferencesStore
         self.scheduler = scheduler
         self.container = container
         self.workoutStore = workoutStore
