@@ -11,7 +11,7 @@ import EnduranceDomain
 /// `sync` from the main actor would send a non-`Sendable` value across an
 /// isolation boundary.
 @MainActor
-final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
+final class NotificationScheduler: NSObject, @preconcurrency UNUserNotificationCenterDelegate {
     private let center = UNUserNotificationCenter.current()
     private let planner = NotificationPlanner()
 
@@ -115,20 +115,78 @@ final class NotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    // MARK: - Diagnostics
+
+    #if DEBUG
+    /// Fire a real reminder a few seconds from now, for a real session.
+    ///
+    /// Deliberately built through `add(_:calendar:)` — the same path production
+    /// reminders take — so the payload, category, thread and `deepLink` userInfo
+    /// are byte-for-byte what a genuine notification carries. A hand-rolled test
+    /// notification would prove nothing about the tap-handling path, which is
+    /// exactly what we are trying to exercise.
+    @discardableResult
+    func scheduleDiagnosticReminder(
+        for workout: ScheduledWorkout,
+        after seconds: TimeInterval = 5
+    ) async -> Bool {
+        guard await authorizationStatus() == .authorized else { return false }
+
+        let fireDate = Date().addingTimeInterval(seconds)
+        let planned = PlannedNotification(
+            id: "diagnostic.\(workout.id.uuidString)",
+            category: .workout,
+            workoutID: workout.id,
+            weekNumber: workout.weekNumber,
+            fireDate: fireDate,
+            title: workout.title,
+            body: String(localized: "Test reminder — tap to open this session."),
+            threadIdentifier: "diagnostic",
+            deepLinkPath: "workout/\(workout.id.uuidString)",
+            interruptionLevel: .active)
+
+        // A calendar trigger only resolves to minute precision, so a few seconds
+        // out would round to "now" and may not fire. Use an interval trigger for
+        // the diagnostic while keeping the identical content.
+        let content = UNMutableNotificationContent()
+        content.title = planned.title
+        content.body = planned.body
+        content.threadIdentifier = planned.threadIdentifier
+        content.sound = .default
+        content.userInfo = ["deepLink": planned.deepLinkPath]
+        content.interruptionLevel = interruptionLevel(planned.interruptionLevel)
+        content.categoryIdentifier = AppConfig.NotificationCategoryID.workout
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, seconds), repeats: false)
+        let request = UNNotificationRequest(identifier: planned.id, content: content, trigger: trigger)
+
+        do {
+            try await center.add(request)
+            AppLog.notifications.info("Diagnostic reminder scheduled for \(Int(seconds))s")
+            return true
+        } catch {
+            AppLog.notifications.error("Diagnostic reminder failed: \(error)")
+            return false
+        }
+    }
+    #endif
+
     // MARK: - UNUserNotificationCenterDelegate
 
-    // `UNUserNotificationCenterDelegate` is not `@MainActor` and its parameters are
-    // non-`Sendable`, so these witnesses stay `nonisolated` and hop to the main
-    // actor themselves rather than forcing the system to send them here.
+    // UserNotifications delivers these on the main thread and asserts as much
+    // internally. An earlier version marked them `nonisolated` to satisfy the
+    // non-`Sendable` parameter diagnostics; that compiled cleanly and crashed on
+    // device with "Call must be made on main thread" the first time a
+    // notification was tapped. `@preconcurrency` on the conformance silences the
+    // same diagnostics while keeping the work where the framework requires it.
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         [.banner, .sound, .list]
     }
 
-    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        // Read what we need before crossing the boundary — `response` is not Sendable.
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let path = response.notification.request.content.userInfo["deepLink"] as? String
         guard let path, let link = DeepLink(path: path) else { return }
-        await MainActor.run { self.deepLinkHandler?(link) }
+        deepLinkHandler?(link)
     }
 }

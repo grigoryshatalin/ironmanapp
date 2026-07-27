@@ -10,6 +10,13 @@ struct NotificationSettingsView: View {
 
     @State private var prefs = NotificationPreferences()
     @State private var authStatus: UNAuthorizationStatus = .notDetermined
+    #if DEBUG
+    @State private var diagnosticState: DiagnosticState = .idle
+
+    enum DiagnosticState: Equatable {
+        case idle, scheduling, scheduled(String), failed(String)
+    }
+    #endif
 
     var body: some View {
         List {
@@ -37,6 +44,9 @@ struct NotificationSettingsView: View {
             } footer: {
                 Text("iOS keeps at most 64 pending reminders. \(AppConfig.productName) schedules the soonest ones and refreshes them automatically.")
             }
+            #if DEBUG
+            diagnosticSection
+            #endif
         }
         .navigationTitle("Notifications")
         .task {
@@ -44,6 +54,52 @@ struct NotificationSettingsView: View {
             authStatus = await env.notifications.authorizationStatus()
         }
     }
+
+    #if DEBUG
+    /// Developer-only. Fires a real reminder for a real session in five seconds,
+    /// through the production payload path, so the tap-handling behaviour can be
+    /// exercised on demand instead of waiting for a scheduled reminder.
+    @ViewBuilder private var diagnosticSection: some View {
+        Section {
+            Button("Send test reminder (5s)") {
+                Task { await sendDiagnostic() }
+            }
+            .disabled(authStatus != .authorized || diagnosticState == .scheduling)
+            .accessibilityIdentifier(A11y.Notifications.sendTest)
+
+            switch diagnosticState {
+            case .idle:
+                EmptyView()
+            case .scheduling:
+                Text("Scheduling…").font(.footnote).foregroundStyle(.secondary)
+            case .scheduled(let title):
+                Text("Sent for “\(title)”. Lock the phone or leave this screen, then tap the banner.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            case .failed(let reason):
+                Text(reason).font(.footnote).foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Developer")
+        } footer: {
+            Text("Debug builds only. Uses the same payload and deep link as a real workout reminder.")
+        }
+    }
+
+    private func sendDiagnostic() async {
+        diagnosticState = .scheduling
+        // Prefer an upcoming session; fall back to any session so the deep link
+        // always points at something that genuinely exists.
+        let all = store.allWorkouts.sorted { $0.plannedStart < $1.plannedStart }
+        guard let workout = all.first(where: { $0.plannedStart >= Date() }) ?? all.first else {
+            diagnosticState = .failed(String(localized: "No sessions scheduled yet."))
+            return
+        }
+        let ok = await env.notifications.scheduleDiagnosticReminder(for: workout)
+        diagnosticState = ok
+            ? .scheduled(workout.title)
+            : .failed(String(localized: "Couldn’t schedule — check notification permission."))
+    }
+    #endif
 
     @ViewBuilder private var authSection: some View {
         Section {

@@ -121,6 +121,7 @@ enum A11y {
         static let authStatus = "notifications.authStatus"
         static let openSettings = "notifications.openSettings"
         static func category(_ raw: String) -> String { "notifications.category.\(raw)" }
+        static let sendTest = "notifications.sendTest"
     }
 
     /// Release 2 — Health (§R).
@@ -137,6 +138,11 @@ enum A11y {
         static let retryExport = "health.retryExport"
         static let lastImport = "health.lastImport"
         static let errorState = "health.errorState"
+        static let skipped = "health.skipped"
+        static let rescan = "health.rescan"
+        static let rawCount = "health.rawCount"
+        static let unmapped = "health.unmapped"
+        static let readAccessHint = "health.readAccessHint"
         static let openSystemSettings = "health.openSystemSettings"
         static let inboxLink = "health.inboxLink"
         static let inboxEmpty = "health.inbox.empty"
