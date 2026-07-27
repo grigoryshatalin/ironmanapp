@@ -75,6 +75,11 @@ public enum WorkoutKitActivityRepresentation: String, Codable, Sendable, Hashabl
     case running
     case cycling
     case swimming
+    /// Carries strength work. HIIT is a first-class Watch workout type that
+    /// accepts a time goal and interval blocks, which is what a strength circuit
+    /// actually is. Filing it here is a deliberate approximation — see
+    /// `activity(for:)` — chosen over sending nothing at all.
+    case highIntensityIntervalTraining
 }
 
 public enum WorkoutKitLocationRepresentation: String, Codable, Sendable, Hashable {
@@ -347,12 +352,30 @@ public struct WorkoutKitConverter: Sendable {
             unsupportedReasons: [])
     }
 
+    /// Strength is filed as high-intensity interval training.
+    ///
+    /// This is an approximation, and a deliberate one. There is no strength
+    /// activity WorkoutKit will schedule that also carries interval structure,
+    /// and the previous policy — "no honest equivalent, send nothing" — meant a
+    /// strength session simply never reached the Watch. HIIT accepts a time goal
+    /// and interval blocks, which is structurally what a strength circuit is, and
+    /// the Watch renders it as a real workout the athlete can start and complete.
+    ///
+    /// The cost is that the resulting HealthKit workout is recorded as HIIT
+    /// rather than strength training. `HealthActivityMapping` therefore maps HIIT
+    /// back to `.strength` on import, so a session completed on the Watch returns
+    /// and matches its planned session rather than being dropped as unmapped.
+    ///
+    /// Mobility and recovery remain unsupported: yoga and flexibility carry no
+    /// interval structure worth sending, and nothing is lost by leaving them off
+    /// the Watch.
     private func activity(for sport: Sport) -> WorkoutKitActivityRepresentation? {
         switch sport {
         case .run: .running
         case .bike: .cycling
         case .swim: .swimming
-        case .strength, .mobility, .recovery, .brick, .race: nil
+        case .strength: .highIntensityIntervalTraining
+        case .mobility, .recovery, .brick, .race: nil
         }
     }
 

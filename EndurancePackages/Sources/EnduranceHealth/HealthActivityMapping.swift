@@ -27,6 +27,13 @@ public enum HealthActivityMapping {
         50: .strength,       // .traditionalStrengthTraining
         20: .strength,       // .functionalStrengthTraining
         80: .strength,       // .coreTraining
+        // Endurance schedules strength sessions to the Watch as HIIT, because
+        // that is the only Watch activity that carries interval structure. A
+        // session completed there returns as HIIT, so it must map back to
+        // strength or it would be dropped as unmapped and never match its
+        // planned session. The consequence is accepted deliberately: a HIIT
+        // workout the athlete does independently also files as strength.
+        63: .strength,       // .highIntensityIntervalTraining
         16: .mobility,       // .flexibility
         75: .mobility,       // .yoga
         59: .mobility,       // .preparationAndRecovery

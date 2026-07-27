@@ -288,11 +288,25 @@ struct WorkoutKitConversionTests {
 
     @Test("Sports WorkoutKit cannot express are refused, not approximated")
     func unsupportedSportsRefused() {
-        for sport in [Sport.strength, .mobility, .recovery] {
+        // Strength is deliberately excluded from this list: it is now filed as
+        // HIIT, which *is* an approximation — a considered one, because the
+        // alternative was that strength sessions never reached the Watch at all.
+        // Mobility and recovery stay refused; approximating them would put a
+        // workout on someone's wrist that does not describe what they are doing.
+        for sport in [Sport.mobility, .recovery] {
             let result = converter.convert(scheduled(sport: sport), template: template(sport: sport))
             #expect(result.outcome == .unsupported, "\(sport)")
             #expect(result.unsupportedReasons == [.unsupportedSport], "\(sport)")
         }
+    }
+
+    @Test("Strength is scheduled as high-intensity interval training")
+    func strengthMapsToHIIT() {
+        let result = converter.convert(scheduled(sport: .strength), template: template(sport: .strength))
+        #expect(result.outcome.isSchedulable)
+        #expect(result.unsupportedReasons.isEmpty)
+        #expect(result.representation != nil,
+                "a schedulable conversion must carry a representation to send")
     }
 
     @Test("A missing template is refused rather than guessed at")
