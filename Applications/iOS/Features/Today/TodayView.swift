@@ -96,24 +96,40 @@ struct TodayView: View {
     private var headerSection: some View {
         Section {
             VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                // At accessibility sizes the date and week line alone can fill
+                // the screen and push the first session out of reach — which is
+                // what this screen exists to show. They step down a size rather
+                // than the sessions stepping off.
                 Text(dateText)
-                    .font(.title2)
+                    .font(dynamicTypeSize.isAccessibilitySize ? .headline : .title2)
                     .accessibilityIdentifier(A11y.Today.date)
-                Text(weekPhaseText)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier(A11y.Today.weekPhase)
+                // Dropped at accessibility sizes. Week and phase are context,
+                // and one line of context is not worth pushing the first session
+                // of the day below the fold — which the accessibility matrix
+                // catches by requiring that row to be tappable, not merely
+                // present. Both remain on the Plan and Progress tabs.
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Text(weekPhaseText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier(A11y.Today.weekPhase)
+                }
                 // At accessibility text sizes this header alone filled the whole
                 // screen and pushed today's sessions off it — which defeats the
                 // one question this screen exists to answer (§8). Weekly
                 // progress is secondary and lives on the Progress tab, so it
                 // yields here rather than truncating anything.
-                // The strip handles accessibility sizes itself by dropping the
-                // chart and keeping the summary, so it no longer has to be
-                // removed wholesale at large text.
-                WeekStripView(week: week, store: store)
-                    .padding(.top, Theme.Space.xs)
-                    .accessibilityIdentifier(A11y.Today.weekProgress)
+                // Omitted entirely at accessibility sizes, not merely reduced.
+                // The strip drops its chart and keeps a summary line, which is
+                // still enough to fill this header and push today's sessions off
+                // screen — the exact failure the accessibility matrix catches,
+                // and the reason the previous progress bar was hidden here too.
+                // Weekly progress lives on the Progress tab; the day wins.
+                if !dynamicTypeSize.isAccessibilitySize {
+                    WeekStripView(week: week, store: store)
+                        .padding(.top, Theme.Space.xs)
+                        .accessibilityIdentifier(A11y.Today.weekProgress)
+                }
             }
             .padding(.vertical, Theme.Space.xs)
         } footer: {

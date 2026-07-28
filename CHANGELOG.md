@@ -8,6 +8,32 @@ absolute.
 
 ## [Unreleased] — Release 2 (Apple ecosystem) in progress
 
+### 2026‑07‑27 — Release 2 Stage 9: full-system verification
+
+Verified
+- **249 domain tests**, 27 suites — pass.
+- **79 iOS unit tests**, including migration — pass.
+- **7 functional UI tests** — pass on a clean simulator.
+- **9 accessibility matrix tests** — pass, after the fix below.
+- Real WorkoutKit accepts all 382 conversions; `supportsActivityOrdering`
+  asserted for bike→run and swim→bike→run.
+- 0 compiler warnings across app, package and widget extension.
+
+Fixed
+- **Today pushed the first session below the fold at accessibility text sizes.**
+  The accessibility matrix caught it by requiring the first row to be *tappable*
+  rather than merely present — a distinction that matters, since the row existed
+  the whole time. The week/phase line is now dropped at accessibility sizes and
+  the date steps down a size. Both remain on the Plan and Progress tabs; one line
+  of context is not worth making the day's first session unreachable.
+
+Known limitations
+- **Screenshot tests are slow** (~20 s each) and were not completed in this pass.
+  They are capture, not verification, and no assertion depends on them.
+- The widget, Siri intents and the reworked Today/week views are verified in the
+  simulator only. Everything user-facing this session was found on hardware, so
+  they should be treated as unverified until run on a device.
+
 ### 2026‑07‑27 — Release 2 Stage 8: widgets and App Intents
 
 Added
