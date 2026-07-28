@@ -200,6 +200,7 @@ public final class WorkoutKitSchedulerAdapter: @unchecked Sendable, WorkoutSched
         case .cycling: .cycling
         case .swimming: .swimming
         case .highIntensityIntervalTraining: .highIntensityIntervalTraining
+        case .functionalStrengthTraining: .functionalStrengthTraining
         }
     }
 

@@ -110,14 +110,66 @@ struct BundledPlanConversionTests {
         #expect(unschedulable == 0, "strength must be schedulable; \(unschedulable) were not")
     }
 
-    /// Mobility and recovery stay unsupported deliberately, so this fails if
-    /// someone later maps them by reflex rather than by decision.
-    @Test("Mobility remains deliberately unscheduled")
-    func mobilityStaysUnsupported() throws {
+    /// Mobility now converts, by the shape of the session rather than by sport.
+    /// Every mobility session in the bundled plan is one continuous flow, so all
+    /// of them take the functional-strength branch; the interval branch exists
+    /// for coach-authored circuits.
+    @Test("Every mobility session converts, as continuous work rather than intervals")
+    func mobilitySchedulesAsFunctionalStrength() throws {
         let results = try convertAll(sport: .mobility)
-        let scheduled = results.filter { $0.outcome != .unsupported }.count
         #expect(!results.isEmpty)
-        #expect(scheduled == 0, "mobility carries no interval structure worth sending to the Watch")
+        #expect(results.allSatisfy { $0.outcome.isSchedulable })
+
+        let plan = try BundledPlans.load36Week()
+        let templates = plan.weeks.flatMap(\.days).flatMap(\.workouts).filter { $0.sport == .mobility }
+        for template in templates {
+            #expect(WorkoutKitConverter.mobilityActivity(for: template) == .functionalStrengthTraining,
+                    "\(template.title) is a continuous flow, not a circuit")
+        }
+    }
+
+    /// The gap that mattered: 70 brick components and race day were refused
+    /// outright, and they are the most triathlon-specific work in the plan.
+    @Test("Bricks and race day convert as multisport containers")
+    func bricksAndRaceConvertAsMultisport() throws {
+        let plan = try BundledPlans.load36Week()
+        let config = ScheduleConfiguration(
+            anchor: .startDate(TestDates.date(2026, 3, 2, tz: "UTC")), timeZoneIdentifier: "UTC")
+        let schedule = try ScheduleEngine().generateSchedule(plan: plan, config: config)
+        let templates = Dictionary(
+            uniqueKeysWithValues: plan.weeks.flatMap { $0.days }.flatMap { $0.workouts }.map { ($0.id, $0) })
+        let converter = WorkoutKitConverter()
+
+        let bricks = schedule.filter { $0.brickGroupID != nil }
+        #expect(!bricks.isEmpty)
+        for brick in bricks {
+            let result = Self.groupedConversion(brick, schedule: schedule, templates: templates, converter: converter)
+            #expect(result.outcome.isSchedulable, "\(brick.title) must reach the Watch")
+        }
+
+        let race = try #require(schedule.first { $0.sport == .race })
+        let raceResult = Self.groupedConversion(race, schedule: schedule, templates: templates, converter: converter)
+        #expect(raceResult.outcome == .simplified,
+                "a multisport container carries leg order only, so it is never exact")
+    }
+
+    /// Multisport must never be reported as exact: `SwimBikeRunWorkout` carries
+    /// no per-leg goals, so distances stay in Endurance and the athlete has to
+    /// agree to that difference rather than discover it on their wrist.
+    @Test("A multisport conversion discloses that leg targets do not transfer")
+    func multisportDisclosesMissingTargets() throws {
+        let plan = try BundledPlans.load36Week()
+        let config = ScheduleConfiguration(
+            anchor: .startDate(TestDates.date(2026, 3, 2, tz: "UTC")), timeZoneIdentifier: "UTC")
+        let schedule = try ScheduleEngine().generateSchedule(plan: plan, config: config)
+        let templates = Dictionary(
+            uniqueKeysWithValues: plan.weeks.flatMap { $0.days }.flatMap { $0.workouts }.map { ($0.id, $0) })
+        let converter = WorkoutKitConverter()
+
+        let brick = try #require(schedule.first { $0.brickGroupID != nil })
+        let result = Self.groupedConversion(brick, schedule: schedule, templates: templates, converter: converter)
+        #expect(result.warnings.contains(.multisportLegTargetsRemainInEndurance))
+        #expect(result.outcome == .simplified, "it needs approval, not silent sending")
     }
 
     /// Not an assertion so much as a published number: how much of the real plan
@@ -137,7 +189,7 @@ struct BundledPlanConversionTests {
         var counts: [WorkoutKitConversionOutcome: Int] = [:]
         var bySport: [Sport: (schedulable: Int, total: Int)] = [:]
         for w in schedule {
-            let r = converter.convert(w, template: w.identity.templateID.flatMap { templates[$0] })
+            let r = Self.groupedConversion(w, schedule: schedule, templates: templates, converter: converter)
             counts[r.outcome, default: 0] += 1
             var entry = bySport[w.sport] ?? (0, 0)
             entry.total += 1
@@ -154,7 +206,7 @@ struct BundledPlanConversionTests {
         // attributable to a named reason rather than a mystery.
         var reasons: [String: Int] = [:]
         for w in schedule {
-            let r = converter.convert(w, template: w.identity.templateID.flatMap { templates[$0] })
+            let r = Self.groupedConversion(w, schedule: schedule, templates: templates, converter: converter)
             for reason in r.unsupportedReasons {
                 reasons["\(w.sport)/\(reason.rawValue)", default: 0] += 1
             }
@@ -200,6 +252,35 @@ struct BundledPlanConversionTests {
         }
         #expect(offenders.isEmpty,
                 "steps with no duration, distance or open goal cannot be sent to the Watch: \(offenders.prefix(5))")
+    }
+
+    /// Mirrors what `WorkoutKitCoordinator.conversion(for:)` does: a brick and a
+    /// race convert as multisport containers, not as isolated rows.
+    static func groupedConversion(
+        _ workout: ScheduledWorkout,
+        schedule: [ScheduledWorkout],
+        templates: [UUID: WorkoutTemplate],
+        converter: WorkoutKitConverter
+    ) -> WorkoutKitConversionResult {
+        func template(_ w: ScheduledWorkout) -> WorkoutTemplate? {
+            w.identity.templateID.flatMap { templates[$0] }
+        }
+        if workout.sport == .race {
+            return converter.convertRace(workout, template: template(workout))
+        }
+        if let groupID = workout.brickGroupID {
+            let components = schedule
+                .filter { $0.brickGroupID == groupID }
+                .sorted { ($0.plannedStart, $0.order) < ($1.plannedStart, $1.order) }
+                .map { (workout: $0, template: template($0)) }
+            if components.count >= 2,
+               let result = converter.convertMultisport(
+                   components: components,
+                   displayName: components.map(\.workout.title).joined(separator: " + ")) {
+                return result
+            }
+        }
+        return converter.convert(workout, template: template(workout))
     }
 
 }

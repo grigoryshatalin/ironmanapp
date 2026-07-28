@@ -117,7 +117,44 @@ final class WorkoutKitCoordinator {
     /// What would happen to this session, without scheduling anything. Drives
     /// the preview UI so an athlete can see a simplification before consenting.
     func conversion(for workout: ScheduledWorkout) -> WorkoutKitConversionResult {
-        converter.convert(workout, template: workoutStore.template(for: workout))
+        // A brick is two sessions performed as one, and a race is one session
+        // containing several legs. Both become a multisport container, so the
+        // conversion has to see the whole group rather than a single row —
+        // converting a brick's bike leg alone would put half a session on the
+        // Watch and call it done.
+        if workout.sport == .race {
+            return converter.convertRace(workout, template: workoutStore.template(for: workout))
+        }
+        if let groupID = workout.brickGroupID {
+            let components = brickComponents(groupID: groupID)
+            if components.count >= 2,
+               let result = converter.convertMultisport(
+                   components: components, displayName: brickDisplayName(components)) {
+                // The container is owned by the *first* leg, so the group
+                // schedules once rather than once per component.
+                guard components.first?.workout.id == workout.id else {
+                    return converter.convert(workout, template: workoutStore.template(for: workout))
+                }
+                return result
+            }
+        }
+        return converter.convert(workout, template: workoutStore.template(for: workout))
+    }
+
+    /// The sessions forming a brick, in the order they are performed.
+    private func brickComponents(
+        groupID: UUID
+    ) -> [(workout: ScheduledWorkout, template: WorkoutTemplate?)] {
+        workoutStore.allWorkouts
+            .filter { $0.brickGroupID == groupID }
+            .sorted { ($0.plannedStart, $0.order) < ($1.plannedStart, $1.order) }
+            .map { ($0, workoutStore.template(for: $0)) }
+    }
+
+    private func brickDisplayName(
+        _ components: [(workout: ScheduledWorkout, template: WorkoutTemplate?)]
+    ) -> String {
+        components.map(\.workout.title).joined(separator: " + ")
     }
 
     func record(for scheduledWorkoutID: UUID) -> WorkoutKitScheduleRecord? {

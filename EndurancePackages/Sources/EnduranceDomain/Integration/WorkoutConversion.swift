@@ -80,6 +80,8 @@ public enum WorkoutKitActivityRepresentation: String, Codable, Sendable, Hashabl
     /// actually is. Filing it here is a deliberate approximation — see
     /// `activity(for:)` — chosen over sending nothing at all.
     case highIntensityIntervalTraining
+    /// Carries continuous mobility work. See `mobilityActivity(for:)`.
+    case functionalStrengthTraining
 }
 
 public enum WorkoutKitLocationRepresentation: String, Codable, Sendable, Hashable {
@@ -126,6 +128,11 @@ public enum WorkoutKitConversionWarning: String, Codable, Sendable, Hashable, Ca
     case drillRepresentedAsWork
     case shortenedWorkoutUsesSingleGoal
     case rpePreservedAsText
+    /// A multisport container carries the leg *order* and locations only —
+    /// `SwimBikeRunWorkout` has no per-leg goals — so distances and durations
+    /// stay in Endurance. Structural: what gets trained on the Watch genuinely
+    /// differs from the plan, and the athlete must agree to that.
+    case multisportLegTargetsRemainInEndurance
 
     public var localizationKey: String { "workoutkit.warning.\(rawValue)" }
 
@@ -150,7 +157,8 @@ public enum WorkoutKitConversionWarning: String, Codable, Sendable, Hashable, Ca
              .fuelingInstructionsRemainInEndurance,
              .rpePreservedAsText:
             return false
-        case .transitionInstructionsOmitted,
+        case .multisportLegTargetsRemainInEndurance,
+             .transitionInstructionsOmitted,
              .nestedRepetitionsFlattened,
              .stepsCombined,
              .drillRepresentedAsWork,
@@ -264,7 +272,7 @@ public struct WorkoutKitConverter: Sendable {
         if workout.sport == .race || template.sport == .race {
             return unsupported(workout, templateID: template.id, reason: .raceRequiresStructuredMultisport)
         }
-        guard let activity = activity(for: workout.sport) else {
+        guard let activity = activity(for: workout.sport, template: template) else {
             return unsupported(workout, templateID: template.id, reason: .unsupportedSport)
         }
 
@@ -321,6 +329,110 @@ public struct WorkoutKitConverter: Sendable {
             warnings: warnings)
     }
 
+    // MARK: - Multisport (§I)
+
+    /// Convert a brick or a race into a `SwimBikeRun` container.
+    ///
+    /// These were previously refused outright, which cost 71 of 382 sessions —
+    /// and they are the most triathlon-specific work in the plan, the sessions
+    /// an athlete would least want to improvise. WorkoutKit has a purpose-built
+    /// multisport type; the refusal predated using it.
+    ///
+    /// Always `.simplified`, never `.exact`. `SwimBikeRunWorkout` carries the
+    /// leg *order* and locations and nothing else — no distances, no durations,
+    /// no intervals. The Watch will sequence the legs and handle transitions;
+    /// the targets stay in Endurance. That is a real difference from the plan,
+    /// so it is disclosed and requires approval rather than being sent silently.
+    ///
+    /// - Parameter components: the sessions forming the brick, in the order they
+    ///   are performed. A race is a single session whose main set already
+    ///   contains the legs, and is handled by `multisportLegs(fromRace:)`.
+    public func convertMultisport(
+        components: [(workout: ScheduledWorkout, template: WorkoutTemplate?)],
+        displayName: String
+    ) -> WorkoutKitConversionResult? {
+        guard let anchor = components.first?.workout else { return nil }
+
+        let legs: [WorkoutKitMultisportActivity] = components.compactMap { component in
+            multisportActivity(sport: component.workout.sport,
+                               location: component.template?.workoutLocation)
+        }
+        guard legs.count == components.count, legs.count >= 2 else {
+            // A leg we cannot express means the container would misrepresent the
+            // session. Refusing is better than sending a partial brick.
+            return unsupported(anchor, templateID: components.first?.template?.id,
+                               reason: .brickRequiresLinkedComponents)
+        }
+
+        return WorkoutKitConversionResult(
+            scheduledWorkoutID: anchor.id,
+            templateID: components.first?.template?.id,
+            sport: anchor.sport,
+            outcome: .simplified,
+            representation: .swimBikeRun(activities: legs, displayName: displayName),
+            warnings: [.multisportLegTargetsRemainInEndurance],
+            unsupportedReasons: [])
+    }
+
+    /// The legs of a race, read from its own main set.
+    ///
+    /// A race is one session containing swim / T1 / bike / T2 / run, so the legs
+    /// come from the steps rather than from sibling sessions. Transitions are
+    /// dropped deliberately: `SwimBikeRunWorkout` inserts its own between legs,
+    /// and passing ours through would double them.
+    public func multisportLegs(fromRace template: WorkoutTemplate) -> [WorkoutKitMultisportActivity] {
+        template.mainSet.compactMap { step in
+            guard step.kind != .transition else { return nil }
+            return sportFromLabel(step.label).flatMap {
+                multisportActivity(sport: $0, location: template.workoutLocation)
+            }
+        }
+    }
+
+    public func convertRace(
+        _ workout: ScheduledWorkout, template: WorkoutTemplate?
+    ) -> WorkoutKitConversionResult {
+        guard let template else {
+            return unsupported(workout, templateID: nil, reason: .missingTemplate)
+        }
+        let legs = multisportLegs(fromRace: template)
+        guard legs.count >= 2 else {
+            return unsupported(workout, templateID: template.id,
+                               reason: .raceRequiresStructuredMultisport)
+        }
+        return WorkoutKitConversionResult(
+            scheduledWorkoutID: workout.id,
+            templateID: template.id,
+            sport: workout.sport,
+            outcome: .simplified,
+            representation: .swimBikeRun(activities: legs, displayName: workout.title),
+            warnings: [.multisportLegTargetsRemainInEndurance],
+            unsupportedReasons: [])
+    }
+
+    private func multisportActivity(
+        sport: Sport, location: WorkoutLocation?
+    ) -> WorkoutKitMultisportActivity? {
+        let resolved = self.location(for: location)
+        switch sport {
+        case .swim: return .swimming(location: resolved)
+        case .bike: return .cycling(location: resolved)
+        case .run:  return .running(location: resolved)
+        default:    return nil
+        }
+    }
+
+    /// A race leg names its own discipline. Matching on the label is narrow and
+    /// explicit rather than clever — an unrecognised leg yields nil and the race
+    /// is refused, which is the safe direction.
+    private func sportFromLabel(_ label: String) -> Sport? {
+        let lowered = label.lowercased()
+        if lowered.contains("swim") { return .swim }
+        if lowered.contains("bike") || lowered.contains("cycle") || lowered.contains("ride") { return .bike }
+        if lowered.contains("run") { return .run }
+        return nil
+    }
+
     /// `.simplified` only when something structural changed; supplemental
     /// disclosures are still reported, but do not gate scheduling.
     static func outcome(for warnings: [WorkoutKitConversionWarning]) -> WorkoutKitConversionOutcome {
@@ -369,14 +481,39 @@ public struct WorkoutKitConverter: Sendable {
     /// Mobility and recovery remain unsupported: yoga and flexibility carry no
     /// interval structure worth sending, and nothing is lost by leaving them off
     /// the Watch.
-    private func activity(for sport: Sport) -> WorkoutKitActivityRepresentation? {
+    private func activity(
+        for sport: Sport, template: WorkoutTemplate?
+    ) -> WorkoutKitActivityRepresentation? {
         switch sport {
-        case .run: .running
-        case .bike: .cycling
-        case .swim: .swimming
-        case .strength: .highIntensityIntervalTraining
-        case .mobility, .recovery, .brick, .race: nil
+        case .run: return .running
+        case .bike: return .cycling
+        case .swim: return .swimming
+        case .strength: return .highIntensityIntervalTraining
+        case .mobility: return Self.mobilityActivity(for: template)
+        // Recovery is walking or nothing; a brick and a race are multisport and
+        // are built by `convertMultisport` rather than as a single activity.
+        case .recovery, .brick, .race: return nil
         }
+    }
+
+    /// Mobility maps to whichever of the two supported shapes the session
+    /// actually resembles.
+    ///
+    /// A circuit — repeated work with recovery between — behaves like interval
+    /// training. A continuous flow does not, and calling a thirty-minute
+    /// mobility session "high intensity interval training" would misdescribe it
+    /// on the athlete's wrist and in their Health data. Functional strength
+    /// training is the closer of the two for continuous work.
+    ///
+    /// Every mobility session in the bundled plan is a single continuous flow,
+    /// so all of them take the second branch today. The first exists for
+    /// coach-authored plans (§28.12) built as circuits.
+    static func mobilityActivity(for template: WorkoutTemplate?) -> WorkoutKitActivityRepresentation {
+        guard let template else { return .functionalStrengthTraining }
+        let steps = template.warmup + template.mainSet + template.cooldown
+        let hasIntervalShape = steps.contains { $0.repeats > 1 || !$0.childSteps.isEmpty }
+            || steps.filter { $0.kind == .work }.count > 1
+        return hasIntervalShape ? .highIntensityIntervalTraining : .functionalStrengthTraining
     }
 
     private func location(for location: WorkoutLocation?) -> WorkoutKitLocationRepresentation {

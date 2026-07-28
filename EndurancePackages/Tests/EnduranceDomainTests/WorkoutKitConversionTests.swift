@@ -288,16 +288,46 @@ struct WorkoutKitConversionTests {
 
     @Test("Sports WorkoutKit cannot express are refused, not approximated")
     func unsupportedSportsRefused() {
-        // Strength is deliberately excluded from this list: it is now filed as
-        // HIIT, which *is* an approximation — a considered one, because the
-        // alternative was that strength sessions never reached the Watch at all.
-        // Mobility and recovery stay refused; approximating them would put a
-        // workout on someone's wrist that does not describe what they are doing.
-        for sport in [Sport.mobility, .recovery] {
+        // Only recovery remains. Strength is filed as HIIT and mobility by its
+        // own shape — both considered approximations, because the alternative
+        // was that those sessions never reached the Watch at all. Recovery is
+        // walking or nothing, and has no structure worth sending.
+        for sport in [Sport.recovery] {
             let result = converter.convert(scheduled(sport: sport), template: template(sport: sport))
             #expect(result.outcome == .unsupported, "\(sport)")
             #expect(result.unsupportedReasons == [.unsupportedSport], "\(sport)")
         }
+    }
+
+    @Test("Continuous mobility is scheduled as functional strength training")
+    func continuousMobilityMapsToFunctionalStrength() {
+        let result = converter.convert(scheduled(sport: .mobility), template: template(sport: .mobility))
+        #expect(result.outcome.isSchedulable)
+        if case .custom(let activity, _, _, _, _, _) = result.representation {
+            #expect(activity == .functionalStrengthTraining,
+                    "a thirty-minute mobility flow is not interval training")
+        } else if case .singleGoal(let activity, _, _) = result.representation {
+            #expect(activity == .functionalStrengthTraining)
+        } else {
+            Issue.record("mobility should convert to a schedulable representation")
+        }
+    }
+
+    @Test("Mobility built as a circuit is scheduled as interval training")
+    func circuitMobilityMapsToHIIT() {
+        // The branch that exists for coach-authored plans (§28.12): repeated
+        // work with recovery genuinely behaves like interval training.
+        let circuit = WorkoutTemplate(
+            id: UUID(), sport: .mobility, title: "Mobility circuit",
+            objective: "Circuit", plannedDurationMinutes: 30,
+            plannedDistanceMeters: nil, intensity: .endurance, stressCategory: .easy,
+            warmup: [],
+            mainSet: [
+                WorkoutStep(kind: .work, label: "Round", durationSeconds: 60, repeats: 4),
+                WorkoutStep(kind: .work, label: "Round two", durationSeconds: 60, repeats: 4),
+            ],
+            cooldown: [])
+        #expect(WorkoutKitConverter.mobilityActivity(for: circuit) == .highIntensityIntervalTraining)
     }
 
     @Test("Strength is scheduled as high-intensity interval training")

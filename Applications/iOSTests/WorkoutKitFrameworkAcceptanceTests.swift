@@ -25,9 +25,33 @@ final class WorkoutKitFrameworkAcceptanceTests: XCTestCase {
             uniqueKeysWithValues: plan.weeks.flatMap { $0.days }.flatMap { $0.workouts }.map { ($0.id, $0) })
         let converter = WorkoutKitConverter()
 
+        func template(_ w: ScheduledWorkout) -> WorkoutTemplate? {
+            w.identity.templateID.flatMap { templates[$0] }
+        }
+        // Bricks and races convert as multisport containers, exactly as the
+        // coordinator does. Testing the per-row conversion instead would leave
+        // `SwimBikeRunWorkout` — and `supportsActivityOrdering` — unexercised.
+        func grouped(_ workout: ScheduledWorkout) -> WorkoutKitConversionResult {
+            if workout.sport == .race {
+                return converter.convertRace(workout, template: template(workout))
+            }
+            if let groupID = workout.brickGroupID {
+                let components = schedule
+                    .filter { $0.brickGroupID == groupID }
+                    .sorted { ($0.plannedStart, $0.order) < ($1.plannedStart, $1.order) }
+                    .map { (workout: $0, template: template($0)) }
+                if components.count >= 2,
+                   let result = converter.convertMultisport(
+                       components: components,
+                       displayName: components.map(\.workout.title).joined(separator: " + ")) {
+                    return result
+                }
+            }
+            return converter.convert(workout, template: template(workout))
+        }
+
         return schedule.compactMap { workout in
-            let conversion = converter.convert(
-                workout, template: workout.identity.templateID.flatMap { templates[$0] })
+            let conversion = grouped(workout)
             guard conversion.outcome.isSchedulable else { return nil }
             return (workout, WorkoutKitScheduleRequest(
                 workoutPlanID: UUID(),
@@ -69,5 +93,23 @@ final class WorkoutKitFrameworkAcceptanceTests: XCTestCase {
         XCTAssertTrue(CustomWorkout.supportsActivity(.swimming))
         XCTAssertTrue(CustomWorkout.supportsActivity(.highIntensityIntervalTraining),
                       "strength is scheduled as HIIT; if this fails, that mapping is invalid")
+        XCTAssertTrue(CustomWorkout.supportsActivity(.functionalStrengthTraining),
+                      "continuous mobility is scheduled as functional strength training")
+    }
+
+    /// A brick is bike then run — a subset of triathlon order, not the full
+    /// swim/bike/run. If WorkoutKit rejects that ordering, every brick in the
+    /// plan silently stops converting, so this is asserted rather than assumed.
+    func testFrameworkAcceptsABikeThenRunBrickOrdering() {
+        XCTAssertTrue(
+            SwimBikeRunWorkout.supportsActivityOrdering([.cycling(.outdoor), .running(.outdoor)]),
+            "a bike-to-run brick must be a valid multisport ordering")
+    }
+
+    func testFrameworkAcceptsFullTriathlonOrdering() {
+        XCTAssertTrue(
+            SwimBikeRunWorkout.supportsActivityOrdering(
+                [.swimming(.openWater), .cycling(.outdoor), .running(.outdoor)]),
+            "race day is swim, bike, run")
     }
 }

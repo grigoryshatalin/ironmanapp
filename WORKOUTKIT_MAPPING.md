@@ -89,9 +89,10 @@ behaviour was technically correct and practically useless.
 | Bike | `cycling` |
 | Swim | `swimming` |
 | Strength | `highIntensityIntervalTraining` — a deliberate approximation, see below |
-| Mobility, Recovery | **unsupported** — no honest equivalent |
-| Brick | **unsupported** — needs linked components |
-| Race | **unsupported** — needs structured multisport |
+| Mobility | `functionalStrengthTraining`, or `highIntensityIntervalTraining` if built as a circuit |
+| Brick | `SwimBikeRunWorkout` — bike → run container |
+| Race | `SwimBikeRunWorkout` — legs read from the session's own main set |
+| Recovery | **unsupported** — walking or nothing; no structure worth sending |
 
 ### Why strength is filed as HIIT
 
@@ -124,17 +125,46 @@ Fitness app represents properly. Only the Watch-scheduling path approximates.
 
 | Sport | Schedulable / total |
 |---|---|
-| Run | 106 / 141 |
+| Run | 141 / 141 |
 | Swim | 93 / 93 |
-| Bike | 38 / 73 |
+| Bike | 73 / 73 |
 | Strength | 39 / 39 |
-| Mobility | 0 / 35 |
-| Race | 0 / 1 |
-| **Total** | **276 / 382** |
+| Mobility | 35 / 35 |
+| Race | 1 / 1 |
+| **Total** | **382 / 382** |
 
-All remaining refusals are brick components (35 runs, 35 rides) and race legs,
-which need linked/structured multisport, plus mobility, which is refused by
-policy. Every refusal carries a named reason; none is a mystery.
+Nothing is refused. 205 convert exactly; 177 are simplified and wait for the
+athlete's approval of the specific simplification.
+
+### Multisport: bricks and race day
+
+Bricks and races were previously refused outright — 71 sessions, and the most
+triathlon-specific work in the plan. `SwimBikeRunWorkout` is purpose-built for
+this; the refusal predated using it.
+
+A brick is **two sessions** sharing a `brickGroupID`, so conversion has to see
+the group: converting the bike leg alone would put half a session on the Watch
+and call it done. The container is owned by the first leg so the group schedules
+once. A race is **one session** whose main set already holds swim / T1 / bike /
+T2 / run, so its legs come from the steps; our transitions are dropped because
+`SwimBikeRunWorkout` inserts its own and passing both would double them.
+
+Multisport is **always `simplified`, never `exact`**. The container carries leg
+order and locations and nothing else — no distances, no durations, no intervals.
+Those stay in Endurance, which is a real difference from the plan, so it is
+disclosed and requires approval rather than being sent silently.
+
+`SwimBikeRunWorkout.supportsActivityOrdering` is asserted against the real
+framework for both bike→run and swim→bike→run in `WorkoutKitFrameworkAcceptanceTests`.
+
+### Mobility
+
+Mapped by the shape of the session rather than by sport. A circuit — repeated
+work with recovery — behaves like interval training. A continuous flow does not,
+and calling a thirty-minute mobility session "high intensity interval training"
+would misdescribe it both on the wrist and in Health. Every mobility session in
+the bundled plan is a single continuous flow, so all 35 take the functional
+strength branch; the interval branch exists for coach-authored circuits (§28.12).
 
 Swim was 58/93 until a plan **data** defect was fixed: a "20 s rest" step carried
 `durationSeconds: 0` because the generator helper only accepted whole minutes, so

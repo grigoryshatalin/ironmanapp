@@ -8,6 +8,38 @@ absolute.
 
 ## [Unreleased] — Release 2 (Apple ecosystem) in progress
 
+### 2026‑07‑27 — Full Watch coverage: multisport and mobility
+
+Watch coverage reaches **382/382** — every session in the 36‑week plan — from
+202 at the start of the day. 205 exact, 177 simplified, **0 refused**.
+
+Added
+- **Bricks and race day convert as `SwimBikeRunWorkout`.** These were refused
+  outright: 71 sessions, and the most triathlon‑specific work in the plan.
+  WorkoutKit has a purpose‑built multisport type and our adapter already had the
+  case stubbed; only the converter refused. A brick is two sessions sharing a
+  `brickGroupID`, so conversion sees the group — converting the bike leg alone
+  would put half a session on the Watch. A race is one session whose main set
+  already holds the legs.
+- **Mobility converts by session shape**: `functionalStrengthTraining` for a
+  continuous flow, `highIntensityIntervalTraining` for a circuit. All 35 bundled
+  mobility sessions are continuous flows and take the first branch; calling a
+  thirty‑minute mobility session "high intensity interval training" would
+  misdescribe it on the wrist and in Health.
+- Framework acceptance tests now exercise the multisport path and assert
+  `supportsActivityOrdering` for bike→run and swim→bike→run against the real
+  WorkoutKit, so a rejected ordering fails loudly rather than silently dropping
+  every brick.
+
+Multisport is always `simplified`, never `exact`: the container carries leg order
+and locations only, so distances and durations stay in Endurance. That is
+disclosed and needs approval rather than being sent silently.
+
+Only recovery remains unsupported — walking or nothing, with no structure worth
+sending.
+
+249 domain + 71 iOS tests pass.
+
 ### 2026‑07‑27 — Release 2 Stage 5: active workout core
 
 Added
