@@ -417,4 +417,54 @@ final class WorkoutKitCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.status(for: workout), .stale,
                        "a schedule built by an older converter must be refreshed, not trusted")
     }
+    // MARK: - Explicit send (regression)
+
+    /// The bug: the workout screen's "Send to Apple Watch" called
+    /// `synchronize()`, which opens with `guard preferences.isEnabled` and only
+    /// ever schedules the horizon window. Before scheduling was switched on in
+    /// Settings — or for any session outside the window — the button did
+    /// nothing at all. No error, no state change, no explanation.
+    func testSendingASessionWorksEvenWhenSchedulingWasNeverEnabled() async throws {
+        XCTAssertFalse(coordinator.preferences.isEnabled, "precondition: never enabled")
+
+        let workout = try nextSchedulable()
+        let sent = await coordinator.scheduleNow(workout)
+
+        XCTAssertTrue(sent, "an explicit request must schedule, not silently no-op")
+        XCTAssertEqual(coordinator.status(for: workout), .scheduled)
+        XCTAssertTrue(coordinator.preferences.isEnabled,
+                      "sending implies the feature is wanted; otherwise the next sync removes it")
+    }
+
+    /// A session outside the horizon must still send when asked for directly.
+    func testSendingWorksForASessionOutsideTheHorizon() async throws {
+        coordinator.preferences.horizon = .nextWorkout
+        await coordinator.enableScheduling()
+
+        let candidates = store.allWorkouts
+            .filter { $0.status == .planned && $0.plannedStart >= Date() }
+            .sorted { $0.plannedStart < $1.plannedStart }
+        let distant = try XCTUnwrap(
+            candidates.dropFirst(5).first { coordinator.conversion(for: $0).outcome.isSchedulable },
+            "need a schedulable session well outside a next-workout horizon")
+
+        let sent = await coordinator.scheduleNow(distant)
+        XCTAssertTrue(sent, "the horizon governs automatic sync, not an explicit request")
+    }
+
+    /// Denied authorization must report, not fail silently.
+    ///
+    /// The denial has to be observed through a refresh, because that is how it
+    /// reaches the coordinator in practice — `authorization` is cached, and a
+    /// revocation in Settings is discovered when the state is next read.
+    func testDeniedAuthorizationOnExplicitSendIsReported() async throws {
+        scheduler.authorization = .denied
+        await coordinator.refreshAuthorization()
+        let workout = try nextSchedulable()
+
+        let sent = await coordinator.scheduleNow(workout)
+        XCTAssertFalse(sent)
+        XCTAssertEqual(coordinator.lastFailure, .authorizationRequired)
+    }
+
 }

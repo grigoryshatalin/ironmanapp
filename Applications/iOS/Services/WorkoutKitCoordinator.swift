@@ -183,6 +183,43 @@ final class WorkoutKitCoordinator {
 
     // MARK: - Synchronization
 
+    /// Send one specific session to the Watch, now, on the athlete's request.
+    ///
+    /// Deliberately not `synchronize()`. That schedules the *horizon window* and
+    /// opens with `guard preferences.isEnabled`, so a tap on a session outside
+    /// the window — or before scheduling is switched on in Settings — did
+    /// nothing at all: no error, no state change, no explanation. An explicit
+    /// request must either work or say why it did not.
+    ///
+    /// Enabling and authorization are handled here rather than being a
+    /// precondition, because "send this to my Watch" is exactly the moment the
+    /// permission is worth asking for (§C: request at the point of use).
+    @discardableResult
+    func scheduleNow(_ workout: ScheduledWorkout) async -> Bool {
+        guard scheduler.isSupported else {
+            lastFailure = .workoutKitUnavailable
+            return false
+        }
+        if authorization != .authorized {
+            authorization = await scheduler.requestAuthorization()
+        }
+        guard authorization == .authorized else {
+            lastFailure = .authorizationRequired
+            return false
+        }
+        // A one-off send implies the feature is wanted; leaving the toggle off
+        // would mean the next sync silently removed what was just sent.
+        if !preferences.isEnabled { preferences.isEnabled = true }
+
+        let conversion = conversion(for: workout)
+        guard conversion.outcome.isSchedulable else {
+            lastFailure = .conversionUnsupported
+            return false
+        }
+        await performSchedule(conversion, for: workout)
+        return status(for: workout) == .scheduled
+    }
+
     /// Schedule the upcoming window and remove anything that no longer belongs.
     func synchronize(now: Date = Date()) async {
         guard preferences.isEnabled, scheduler.isSupported, !isSynchronizing else { return }

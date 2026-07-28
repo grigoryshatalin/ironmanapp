@@ -78,6 +78,7 @@ enum A11y {
         static let watchSend = "detail.watchSend"
         static let watchSetup = "detail.watchSetup"
         static let watchUnsupported = "detail.watchUnsupported"
+        static let watchFailure = "detail.watchFailure"
         static let scheduledDate = "detail.scheduledDate"
         static let status = "detail.status"
         static func intervalToggle(_ id: String) -> String { "detail.interval.\(id)" }

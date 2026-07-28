@@ -24,9 +24,19 @@ struct WatchHandoffSection: View {
     let workout: ScheduledWorkout
 
     @State private var isSending = false
+    /// Resolved once and on change, never per render.
+    ///
+    /// `status(for:)` runs a SwiftData fetch and `conversion(for:)` regroups
+    /// bricks across every workout in the plan and re-runs the converter. As
+    /// computed properties they did that on *every* body evaluation — and
+    /// SwiftUI re-evaluates on each observable change, so toggling `isSending`
+    /// alone triggered a full refetch and reconversion mid-animation. That is
+    /// what made this section stutter.
+    @State private var status: WorkoutKitScheduleStatus = .notEvaluated
+    @State private var unsupportedReasons: [WorkoutKitUnsupportedReason] = []
+    @State private var failure: WorkoutKitFailureCategory?
 
     private var coordinator: WorkoutKitCoordinator { env.workoutKit }
-    private var status: WorkoutKitScheduleStatus { coordinator.status(for: workout) }
 
     var body: some View {
         Section {
@@ -60,8 +70,9 @@ struct WatchHandoffSection: View {
 
             case .failedRetryable, .failedPermanent:
                 sendButton(simplified: false)
-                Text("Last attempt didn’t reach your Watch. Your plan is unchanged.")
+                Text(failureExplanation)
                     .font(.footnote).foregroundStyle(.secondary)
+                    .accessibilityIdentifier(A11y.Detail.watchFailure)
 
             case .scheduling, .rescheduling, .removing:
                 HStack { ProgressView(); Text("Sending…").foregroundStyle(.secondary) }
@@ -76,6 +87,7 @@ struct WatchHandoffSection: View {
                 Text("Heart rate, distance and calories are recorded by your Watch. When you finish, the session appears here automatically.")
             }
         }
+        .task(id: workout.id) { refresh() }
     }
 
     // MARK: - Rows
@@ -123,8 +135,31 @@ struct WatchHandoffSection: View {
         .accessibilityIdentifier(A11y.Detail.watchUnsupported)
     }
 
+    private func refresh() {
+        status = coordinator.status(for: workout)
+        unsupportedReasons = status == .unsupported
+            ? coordinator.conversion(for: workout).unsupportedReasons
+            : []
+        failure = coordinator.lastFailure
+    }
+
+    /// Names what actually went wrong. "Didn't finish" tells the athlete
+    /// nothing they can act on, and this is the screen where they would act.
+    private var failureExplanation: String {
+        switch failure {
+        case .authorizationRequired, .authorizationDenied:
+            return String(localized: "Apple Watch scheduling needs permission. Open Settings to allow it.")
+        case .workoutKitUnavailable:
+            return String(localized: "This iPhone can’t schedule to Apple Watch.")
+        case .duplicatePrevented:
+            return String(localized: "This session is already on your Watch.")
+        default:
+            return String(localized: "Last attempt didn’t reach your Watch. Your plan is unchanged.")
+        }
+    }
+
     private var unsupportedExplanation: String {
-        let reasons = coordinator.conversion(for: workout).unsupportedReasons
+        let reasons = unsupportedReasons
         if reasons.contains(.brickRequiresLinkedComponents) {
             return String(localized: "A brick is two sessions back to back. Start each part separately on your Watch.")
         }
@@ -136,11 +171,14 @@ struct WatchHandoffSection: View {
 
     private func send(simplified: Bool) async {
         isSending = true
-        defer { isSending = false }
+        defer { isSending = false; refresh() }
         if simplified {
             await coordinator.approveSimplification(for: workout)
         } else {
-            await coordinator.synchronize()
+            // Not `synchronize()`: that schedules the horizon window and returns
+            // silently when scheduling is switched off, so this button did
+            // nothing at all for a session outside the window.
+            await coordinator.scheduleNow(workout)
         }
     }
 }
