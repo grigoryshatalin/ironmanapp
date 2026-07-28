@@ -8,6 +8,47 @@ absolute.
 
 ## [Unreleased] — Release 2 (Apple ecosystem) in progress
 
+### 2026‑07‑27 — Release 2 Stage 5: active workout core
+
+Added
+- **`ActiveWorkoutCoordinator`** — owns the state machine, the monotonic clock,
+  recovery persistence, and the save that follows. The session is injected as
+  `ActiveWorkoutManaging`, so interruption recovery and duplicate prevention are
+  exercised with a deterministic fake: no watch, no authorization prompt, no
+  waiting. Every state change is persisted *before* it is acted on, because a
+  crash between deciding and writing must lose nothing.
+- **`ActiveWorkoutMetrics`** — every field optional and absent by default. A
+  metric is shown only when the device genuinely produced it; an iPhone with no
+  paired Watch has no heart rate, and `0 bpm` would be a measurement the athlete
+  never made. Pace returns nil rather than infinity before movement.
+- **`ActiveWorkoutCapability`** — what a device can actually record, declared up
+  front so the UI states its limits *before* a session starts rather than showing
+  dashes for an hour. `HKWorkoutSession` is watchOS‑only, so the iPhone path is
+  honestly a timer plus an `HKWorkoutBuilder` write, not a degraded watch session.
+  Rich live metrics arrive with the watch app in Stage 6; this stage does not
+  fake them.
+- **`IntervalTracker`** — flattens a template into the steps an athlete actually
+  performs, expanding repeats, and answers current / remaining / upcoming. A step
+  with no stated goal is never auto‑advanced: that would be guessing on the
+  athlete's behalf.
+- **Interruption recovery** with three explicit choices — resume, save what was
+  accrued, or discard. Doing nothing silently is deliberately not offered.
+
+Fixed during the stage, both caught by their own tests
+- `IntervalTracker.init(steps:)` did not flatten while `init(template:)` did, so
+  the same input described a different workout depending on which initializer the
+  caller used.
+- A successful save cleared the recovery record, then the metrics refresh
+  immediately re‑created it — so every completed session would have been offered
+  back as "unfinished" on the next launch, inviting the duplicate §O forbids.
+  Recovery is no longer written in a terminal state.
+
+Notably **no schema migration was required**: `SDActiveWorkoutRecovery` stores an
+encoded payload rather than columns, so evolving the domain type changes blob
+contents, not the entity shape.
+
+245 domain + 79 iOS tests pass, 0 warnings.
+
 ### 2026‑07‑27 — Strength sessions now reach the Apple Watch
 
 Changed

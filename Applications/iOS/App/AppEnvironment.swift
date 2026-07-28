@@ -23,6 +23,7 @@ final class AppEnvironment {
     let healthExport: HealthExportCoordinator
     /// Release 2 WorkoutKit scheduling. Off by default (§I).
     let workoutKit: WorkoutKitCoordinator
+    let activeWorkout: ActiveWorkoutCoordinator
 
     /// Routing state driven by notification deep links.
     var selectedTab: AppTab = .today
@@ -36,7 +37,8 @@ final class AppEnvironment {
         modelContainer: ModelContainer,
         healthImporter: (any HealthWorkoutImporting)? = nil,
         healthExporter: (any HealthExporting)? = nil,
-        workoutScheduler: (any WorkoutScheduling)? = nil
+        workoutScheduler: (any WorkoutScheduling)? = nil,
+        activeWorkoutSession: (any ActiveWorkoutManaging)? = nil
     ) {
         let store = WorkoutStore(modelContainer: modelContainer)
         self.store = store
@@ -51,6 +53,10 @@ final class AppEnvironment {
         self.healthExport = HealthExportCoordinator(
             exporter: healthExporter ?? HealthExportCoordinator.defaultExporter(),
             container: modelContainer)
+        self.activeWorkout = ActiveWorkoutCoordinator(
+            session: activeWorkoutSession ?? PhoneWorkoutSession(),
+            container: modelContainer,
+            workoutStore: store)
         self.workoutKit = WorkoutKitCoordinator(
             scheduler: workoutScheduler ?? WorkoutKitCoordinator.defaultScheduler(),
             container: modelContainer,
@@ -71,6 +77,9 @@ final class AppEnvironment {
         }
         // Restore persisted integration toggles BEFORE anything reads them:
         // import and rescan both guard on `isImportEnabled`.
+        // A session that was live when the app died is the athlete's work, and
+        // they are owed a decision about it rather than silent deletion (§G).
+        activeWorkout.checkForInterruptedSession()
         health.restorePreferences()
         await health.refreshConnectionState()
         healthExport.restorePreferences()

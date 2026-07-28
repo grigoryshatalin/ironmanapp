@@ -178,6 +178,16 @@ public struct WorkoutKitScheduledPlan: Codable, Sendable, Hashable, Identifiable
 /// `HKLiveWorkoutBuilder`; in tests it is a deterministic fake.
 public protocol ActiveWorkoutManaging: AnyObject, Sendable {
     var state: ActiveWorkoutState { get }
+
+    /// Whether this device can run a live session at all.
+    ///
+    /// `HKWorkoutSession` is watchOS-only. On iPhone the session is timed
+    /// locally and written with `HKWorkoutBuilder` on completion, which means no
+    /// live heart rate and no streamed distance. Callers must be able to ask,
+    /// so the UI can say what it will and will not record *before* the athlete
+    /// starts rather than showing dashes for twenty minutes.
+    var capability: ActiveWorkoutCapability { get }
+
     func prepare(for workout: ScheduledWorkout) async throws
     func start() async throws
     func pause() async throws
@@ -186,6 +196,45 @@ public protocol ActiveWorkoutManaging: AnyObject, Sendable {
     func save() async throws -> WorkoutExecution
     func discard() async throws
     func markLap() async
+
+    /// Latest metrics the session has actually produced.
+    func currentMetrics() async -> ActiveWorkoutMetrics
+}
+
+/// What a device can genuinely record, so the UI never promises more (§G).
+public struct ActiveWorkoutCapability: Codable, Sendable, Hashable {
+    /// A true `HKWorkoutSession` with live sample collection.
+    public var hasLiveSession: Bool
+    public var providesHeartRate: Bool
+    public var providesDistance: Bool
+    public var providesEnergy: Bool
+    public var providesPower: Bool
+
+    public init(
+        hasLiveSession: Bool, providesHeartRate: Bool, providesDistance: Bool,
+        providesEnergy: Bool, providesPower: Bool
+    ) {
+        self.hasLiveSession = hasLiveSession
+        self.providesHeartRate = providesHeartRate
+        self.providesDistance = providesDistance
+        self.providesEnergy = providesEnergy
+        self.providesPower = providesPower
+    }
+
+    /// iPhone without a live session: time is real, everything else is absent.
+    public static let timingOnly = ActiveWorkoutCapability(
+        hasLiveSession: false, providesHeartRate: false, providesDistance: false,
+        providesEnergy: false, providesPower: false)
+
+    /// Which metric fields this device can actually fill for a sport.
+    public func availableFields(for sport: Sport) -> Set<ActiveWorkoutMetrics.Field> {
+        var fields = ActiveWorkoutMetrics.relevantFields(for: sport)
+        if !providesHeartRate { fields.remove(.heartRate) }
+        if !providesDistance { fields.remove(.distance); fields.remove(.pace); fields.remove(.speed) }
+        if !providesEnergy { fields.remove(.energy) }
+        if !providesPower { fields.remove(.power) }
+        return fields
+    }
 }
 
 // MARK: - Watch synchronization

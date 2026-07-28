@@ -18,6 +18,7 @@ struct EnduranceApp: App {
             RootView()
                 .environment(environment)
                 .task { await environment.start() }
+                .interruptedSessionPrompt(environment)
         }
     }
 

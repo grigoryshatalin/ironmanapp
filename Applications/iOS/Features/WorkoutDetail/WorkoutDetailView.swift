@@ -46,6 +46,17 @@ struct WorkoutDetailView: View {
                         Button("Complete") { completing = true }
                             .accessibilityIdentifier(A11y.Detail.complete)
                     }
+                    // Recording is a separate act from logging: "Complete" is
+                    // for a session already done, "Record" is for one starting
+                    // now. Collapsing them would make one of the two lie.
+                    ToolbarItem(placement: .secondaryAction) {
+                        NavigationLink {
+                            ActiveWorkoutView(workout: workout)
+                        } label: {
+                            Label("Record workout", systemImage: "stopwatch")
+                        }
+                        .accessibilityIdentifier(A11y.Detail.record)
+                    }
                 }
             }
             .haptic(.completed, trigger: completionTick)
