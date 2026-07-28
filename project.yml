@@ -50,7 +50,13 @@ targets:
       - path: Applications/iOS
       # Accessibility identifiers are shared verbatim with the UI test target so
       # tests never match on user-facing (and therefore localized) English.
+      # Kept free of framework dependencies for exactly that reason — the UI test
+      # target compiles this folder and must not need the domain package.
       - path: Applications/Shared
+      # Code shared with the widget extension: the App Group, the snapshot store
+      # and the App Intents. Depends on EnduranceDomain, so it is deliberately
+      # not in Applications/Shared.
+      - path: Applications/SharedKit
     dependencies:
       - package: EndurancePackages
         product: EnduranceDomain
@@ -60,6 +66,8 @@ targets:
         product: EnduranceHealth
       - package: EndurancePackages
         product: EnduranceWorkoutKit
+      - target: EnduranceWidgets
+        embed: true
     settings:
       base:
         PRODUCT_NAME: Endurance
@@ -71,6 +79,28 @@ targets:
         ENABLE_PREVIEWS: YES
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTS_MACCATALYST: NO
+
+  EnduranceWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: Applications/Widgets
+      # The snapshot type and its formatting live in the domain package, so the
+      # widget renders from the same values the app does rather than a parallel
+      # copy that drifts.
+      - path: Applications/SharedKit
+    dependencies:
+      - package: EndurancePackages
+        product: EnduranceDomain
+    settings:
+      base:
+        PRODUCT_NAME: EnduranceWidgets
+        PRODUCT_BUNDLE_IDENTIFIER: com.grigoryshatalin.endurance.widgets
+        INFOPLIST_FILE: Applications/Widgets/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Applications/Widgets/EnduranceWidgets.entitlements
+        TARGETED_DEVICE_FAMILY: "1"
+        SKIP_INSTALL: YES
 
   EnduranceTests:
     type: bundle.unit-test

@@ -1,33 +1,26 @@
 import Foundation
+import WidgetKit
 import EnduranceDomain
 
-/// Writes the compact `SharedTodaySnapshot` to the App Group container so widgets
-/// / intents / the watch can read "today" cheaply without opening SwiftData
-/// (brief §28.19). Best-effort and non-fatal.
+/// Thin app-side wrapper over `SharedSnapshotStore`, kept so existing call
+/// sites read unchanged. The implementation is shared with the widget extension
+/// so the two cannot drift into reading and writing different shapes.
 struct SnapshotWriter {
     let appGroupID: String
-    private let filename = "today-snapshot.json"
 
-    private var url: URL? {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
-            .appendingPathComponent(filename)
-    }
+    private var store: SharedSnapshotStore { SharedSnapshotStore(appGroupID: appGroupID) }
 
     func write(_ snapshot: SharedTodaySnapshot) {
-        guard let url else { return }
-        do {
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            try encoder.encode(snapshot).write(to: url, options: .atomic)
-        } catch {
-            AppLog.app.error("Snapshot write failed: \(error)")
+        guard store.isContainerAvailable else {
+            AppLog.app.error("App Group container unavailable; widgets will show stale data")
+            return
         }
+        store.write(snapshot)
+        // The timeline policy is an hourly backstop; this is the primary path.
+        // Without it a completed session stays on the Home Screen until the next
+        // scheduled refresh, which reads as the app having missed it.
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
-    func read() -> SharedTodaySnapshot? {
-        guard let url, let data = try? Data(contentsOf: url) else { return nil }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try? decoder.decode(SharedTodaySnapshot.self, from: data)
-    }
+    func read() -> SharedTodaySnapshot? { store.read() }
 }

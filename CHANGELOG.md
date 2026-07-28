@@ -8,6 +8,46 @@ absolute.
 
 ## [Unreleased] — Release 2 (Apple ecosystem) in progress
 
+### 2026‑07‑27 — Release 2 Stage 8: widgets and App Intents
+
+Added
+- **Widget extension** (`EnduranceWidgets`) with a Today widget across small,
+  medium and all three accessory families — Home Screen, Lock Screen and Watch
+  face. Each family shows *less* rather than a shrunken copy: an inline accessory
+  has room for one line, and what survives every size is the next session.
+- **App Intents and Shortcuts** — "next workout", "today's training", "open
+  today". Read‑only or open the app; nothing destructive is exposed to voice,
+  because the honest way to confirm skipping a session is on screen where the
+  athlete can see what changes.
+- **`SharedSnapshotStore`**, shared verbatim by app and extension so the two
+  cannot drift into reading and writing different shapes. It exposes
+  `isContainerAvailable`, which distinguishes an unreachable App Group from an
+  empty plan — those were indistinguishable, and that is precisely how the
+  placeholder App Group identifier hid for the whole of Release 2.
+- Widget timelines reload when the snapshot changes rather than waiting for the
+  hourly backstop, so a completed session leaves the Home Screen immediately.
+
+Structure
+- `Applications/Shared` stays framework‑free — the UI test target compiles it for
+  accessibility identifiers and must not need the domain package. Code shared
+  with the widget lives in `Applications/SharedKit`.
+
+Notes
+- Timelines refresh at the next session's start or hourly, whichever is sooner.
+  WidgetKit budgets refreshes; spending them on a plan that changes a few times a
+  day would leave the widget stale exactly when it matters.
+- Progress is measured in **minutes, not session count**: a 20‑minute mobility
+  session and a four‑hour ride are not equal thirds of a day's work.
+
+Documentation
+- `RELEASE_2_IMPLEMENTATION_PLAN.md` records Stage 5 as superseded and re‑scopes
+  Stages 6 and 7. Both were specified for an iPhone‑centric app that records its
+  own workouts, an assumption that no longer holds. Three of Stage 6's seven
+  screens are now delivered by Apple's Workout app; what remains is coaching
+  context on the wrist.
+
+249 domain + 79 iOS tests pass, 0 warnings.
+
 ### 2026‑07‑27 — Full Watch coverage: multisport and mobility
 
 Watch coverage reaches **382/382** — every session in the 36‑week plan — from
