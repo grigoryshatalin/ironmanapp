@@ -118,6 +118,42 @@ final class NotificationScheduler: NSObject, @preconcurrency UNUserNotificationC
     // MARK: - Diagnostics
 
     #if DEBUG
+    /// One pending reminder, as iOS actually holds it.
+    struct PendingReminder: Identifiable, Sendable, Equatable {
+        let id: String
+        let title: String
+        let fireDate: Date?
+        let categoryIdentifier: String
+    }
+
+    /// What iOS is actually holding, not what the planner believes it asked for.
+    ///
+    /// The planner's decisions are unit-tested; what has never been observable is
+    /// the *bridge* — whether `sync` genuinely reconciles against
+    /// `UNUserNotificationCenter` on device. Non-duplication, regeneration and
+    /// cancellation are all statements about this set, and all three can be
+    /// checked by reading it rather than by waiting for a reminder to fire.
+    func pendingReminders() async -> [PendingReminder] {
+        let requests = await center.pendingNotificationRequests()
+        return requests.map { request in
+            let calendarDate = (request.trigger as? UNCalendarNotificationTrigger)?.nextTriggerDate()
+            let intervalDate = (request.trigger as? UNTimeIntervalNotificationTrigger)?.nextTriggerDate()
+            return PendingReminder(
+                id: request.identifier,
+                title: request.content.title,
+                fireDate: calendarDate ?? intervalDate,
+                categoryIdentifier: request.content.categoryIdentifier)
+        }
+        .sorted { ($0.fireDate ?? .distantFuture) < ($1.fireDate ?? .distantFuture) }
+    }
+
+    /// Re-run `sync` with the exact same inputs. Non-duplication means the
+    /// pending set is byte-identical afterwards — stable identifiers are what
+    /// make that true, and this is how to observe it rather than assume it.
+    func resync(workouts: [ScheduledWorkout], preferences: NotificationPreferences, calendar: Calendar) async {
+        await sync(workouts: workouts, preferences: preferences, calendar: calendar)
+    }
+
     /// Fire a real reminder a few seconds from now, for a real session.
     ///
     /// Deliberately built through `add(_:calendar:)` — the same path production

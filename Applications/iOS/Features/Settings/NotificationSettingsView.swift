@@ -67,6 +67,11 @@ struct NotificationSettingsView: View {
             .disabled(authStatus != .authorized || diagnosticState == .scheduling)
             .accessibilityIdentifier(A11y.Notifications.sendTest)
 
+            NavigationLink("Pending reminders…") {
+                NotificationDiagnosticsView()
+            }
+            .accessibilityIdentifier(A11y.Notifications.diagnostics)
+
             switch diagnosticState {
             case .idle:
                 EmptyView()

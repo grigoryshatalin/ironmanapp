@@ -122,6 +122,10 @@ enum A11y {
         static let openSettings = "notifications.openSettings"
         static func category(_ raw: String) -> String { "notifications.category.\(raw)" }
         static let sendTest = "notifications.sendTest"
+        static let diagnostics = "notifications.diagnostics"
+        static let pendingCount = "notifications.pendingCount"
+        static let resync = "notifications.resync"
+        static let resyncResult = "notifications.resyncResult"
     }
 
     /// Release 2 — Health (§R).
