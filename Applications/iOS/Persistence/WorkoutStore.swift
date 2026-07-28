@@ -346,11 +346,48 @@ final class WorkoutStore {
             nextWorkoutTitle: next?.title,
             nextWorkoutSport: next?.sport,
             nextWorkoutStart: next?.plannedStart,
-            plannedMinutes: wp.plannedMinutes,
-            completedMinutes: wp.completedMinutes,
+            // Today's, matching the field names. The week's totals travel
+            // alongside rather than in place of them.
+            plannedMinutes: today.filter { !$0.isOptional }
+                .reduce(0) { $0 + $1.plannedDurationMinutes },
+            completedMinutes: today.filter { $0.status.countsAsDone }
+                .reduce(0) { $0 + $1.plannedDurationMinutes },
+            weekPlannedMinutes: wp.plannedMinutes,
+            weekCompletedMinutes: wp.completedMinutes,
             sessionCount: today.filter { !$0.isOptional }.count,
             completedSessionCount: today.filter { $0.status.countsAsDone }.count,
-            isRecoveryDay: today.allSatisfy { $0.stressCategory == .recovery } && !today.isEmpty)
+            isRecoveryDay: today.allSatisfy { $0.stressCategory == .recovery } && !today.isEmpty,
+            week: weekSummary(week: week, now: now))
+    }
+
+    /// A compact per-day view of the current training week, for the widget.
+    ///
+    /// Built here rather than in the extension: the widget must not open
+    /// SwiftData on a timeline refresh, and the weekday initials have to be
+    /// localized by the app, which owns the calendar and locale.
+    private func weekSummary(week: Int, now: Date) -> [SharedTodaySnapshot.DaySummary] {
+        let calendar = configuration?.calendar ?? .current
+        let inWeek = allWorkouts.filter { $0.weekNumber == week }
+        guard !inWeek.isEmpty else { return [] }
+
+        let symbols = calendar.veryShortStandaloneWeekdaySymbols
+        let today = calendar.startOfDay(for: now)
+
+        return Dictionary(grouping: inWeek, by: \.weekdayOffset)
+            .sorted { $0.key < $1.key }
+            .map { offset, workouts in
+                let day = workouts.first.map { calendar.startOfDay(for: $0.scheduledDate) }
+                let weekdayIndex = day.map { calendar.component(.weekday, from: $0) - 1 } ?? 0
+                let required = workouts.filter { !$0.isOptional }
+                return SharedTodaySnapshot.DaySummary(
+                    weekdayOffset: offset,
+                    initial: symbols.indices.contains(weekdayIndex) ? symbols[weekdayIndex] : "",
+                    plannedMinutes: required.reduce(0) { $0 + $1.plannedDurationMinutes },
+                    completedMinutes: workouts.filter { $0.status.countsAsDone }
+                        .reduce(0) { $0 + $1.plannedDurationMinutes },
+                    isToday: day == today,
+                    isRest: required.isEmpty)
+            }
     }
 
     // MARK: - Helpers

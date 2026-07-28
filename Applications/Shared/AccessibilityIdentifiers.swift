@@ -85,6 +85,7 @@ enum A11y {
     }
 
     enum Plan {
+        static let weekStrip = "plan.weekStrip"
         static let list = "plan.list"
         static let filterMenu = "plan.filter"
         static func filterOption(_ raw: String) -> String { "plan.filter.\(raw)" }

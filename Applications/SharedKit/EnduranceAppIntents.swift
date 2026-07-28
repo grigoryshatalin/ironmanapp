@@ -67,6 +67,47 @@ struct TodayProgressIntent: AppIntent {
     }
 }
 
+/// How the *week* is going.
+///
+/// Added because "how many minutes do I have this week" got "I can't help you
+/// with that": there was no weekly intent at all, and the daily one's phrases
+/// did not cover it. Siri matches phrases fairly literally, so the ways an
+/// athlete would actually ask are enumerated rather than assumed.
+struct WeekProgressIntent: AppIntent {
+    static let title: LocalizedStringResource = "This week's training"
+    static let description = IntentDescription(
+        "Ask how many minutes you have planned this week, and how much is done.")
+    static let openAppWhenRun = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let store = SharedSnapshotStore()
+        guard store.isContainerAvailable, let s = store.read() else {
+            return .result(dialog: "Open Endurance once to set up your plan.")
+        }
+        guard s.weekPlannedMinutes > 0 else {
+            return .result(dialog: "Nothing scheduled this week.")
+        }
+        let remaining = max(0, s.weekPlannedMinutes - s.weekCompletedMinutes)
+        guard remaining > 0 else {
+            return .result(dialog: "Week \(s.weekNumber) is done — \(Self.duration(s.weekCompletedMinutes)) trained.")
+        }
+        let planned = Self.duration(s.weekPlannedMinutes)
+        let done = Self.duration(s.weekCompletedMinutes)
+        let left = Self.duration(remaining)
+        return .result(dialog: "Week \(s.weekNumber) of \(s.totalWeeks): \(planned) planned, \(done) done, \(left) to go.")
+    }
+
+    /// Hours and minutes. "Eight hundred and forty minutes" is not a number
+    /// anyone holds in their head, and this is spoken aloud.
+    static func duration(_ minutes: Int) -> String {
+        let h = minutes / 60, m = minutes % 60
+        if h == 0 { return "\(m) minutes" }
+        if m == 0 { return h == 1 ? "1 hour" : "\(h) hours" }
+        return "\(h) hours \(m) minutes"
+    }
+}
+
 /// Opens the app on today's session.
 ///
 /// Deliberately a separate intent from `NextWorkoutIntent` rather than a
@@ -104,6 +145,18 @@ struct EnduranceShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Today's training",
             systemImageName: "chart.bar.fill")
+
+        AppShortcut(
+            intent: WeekProgressIntent(),
+            phrases: [
+                "How many minutes do I have this week in \(.applicationName)",
+                "How many hours this week in \(.applicationName)",
+                "How much training is left this week in \(.applicationName)",
+                "What's my \(.applicationName) week",
+                "\(.applicationName) this week",
+            ],
+            shortTitle: "This week",
+            systemImageName: "calendar.badge.clock")
 
         AppShortcut(
             intent: OpenTodayIntent(),

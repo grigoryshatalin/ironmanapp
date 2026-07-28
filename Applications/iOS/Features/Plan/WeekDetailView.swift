@@ -15,6 +15,12 @@ struct WeekDetailView: View {
 
     var body: some View {
         List {
+            Section {
+                WeekStripView(week: week, store: store)
+                    .padding(.vertical, Theme.Space.xs)
+                    .accessibilityIdentifier(A11y.Plan.weekStrip)
+            }
+
             if let def = weekDef {
                 Section {
                     Text(def.objective).font(.body)

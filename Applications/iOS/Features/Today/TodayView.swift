@@ -108,11 +108,12 @@ struct TodayView: View {
                 // one question this screen exists to answer (§8). Weekly
                 // progress is secondary and lives on the Progress tab, so it
                 // yields here rather than truncating anything.
-                if !dynamicTypeSize.isAccessibilitySize {
-                    WeekProgressBar(week: week, store: store)
-                        .padding(.top, Theme.Space.xs)
-                        .accessibilityIdentifier(A11y.Today.weekProgress)
-                }
+                // The strip handles accessibility sizes itself by dropping the
+                // chart and keeping the summary, so it no longer has to be
+                // removed wholesale at large text.
+                WeekStripView(week: week, store: store)
+                    .padding(.top, Theme.Space.xs)
+                    .accessibilityIdentifier(A11y.Today.weekProgress)
             }
             .padding(.vertical, Theme.Space.xs)
         } footer: {
