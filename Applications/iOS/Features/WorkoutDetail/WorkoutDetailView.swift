@@ -26,6 +26,11 @@ struct WorkoutDetailView: View {
             List {
                 headerSection(workout)
                 purposeSection(workout)
+                // Placed above the steps: the Watch is where the session gets
+                // recorded, so handing it over comes before reading the detail.
+                if workout.status == .planned {
+                    WatchHandoffSection(workout: workout)
+                }
                 if let t = template {
                     stepSection("Warm-up", "flame", t.warmup)
                     stepSection("Main set", "bolt", t.mainSet)
@@ -43,19 +48,8 @@ struct WorkoutDetailView: View {
             .toolbar {
                 if workout.status == .planned {
                     ToolbarItem(placement: .primaryAction) {
-                        Button("Complete") { completing = true }
+                        Button("Mark complete") { completing = true }
                             .accessibilityIdentifier(A11y.Detail.complete)
-                    }
-                    // Recording is a separate act from logging: "Complete" is
-                    // for a session already done, "Record" is for one starting
-                    // now. Collapsing them would make one of the two lie.
-                    ToolbarItem(placement: .secondaryAction) {
-                        NavigationLink {
-                            ActiveWorkoutView(workout: workout)
-                        } label: {
-                            Label("Record workout", systemImage: "stopwatch")
-                        }
-                        .accessibilityIdentifier(A11y.Detail.record)
                     }
                 }
             }

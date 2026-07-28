@@ -74,7 +74,10 @@ enum A11y {
     enum Detail {
         static let list = "detail.list"
         static let complete = "detail.complete"
-        static let record = "detail.record"
+        static let watchSent = "detail.watchSent"
+        static let watchSend = "detail.watchSend"
+        static let watchSetup = "detail.watchSetup"
+        static let watchUnsupported = "detail.watchUnsupported"
         static let scheduledDate = "detail.scheduledDate"
         static let status = "detail.status"
         static func intervalToggle(_ id: String) -> String { "detail.interval.\(id)" }
@@ -115,22 +118,6 @@ enum A11y {
         static let longBikeDay = "planDates.longBikeDay"
         static let longRunDay = "planDates.longRunDay"
         static let restDay = "planDates.restDay"
-    }
-
-    enum ActiveWorkout {
-        static let state = "activeworkout.state"
-        static let capabilityNote = "activeworkout.capabilityNote"
-        static let elapsed = "activeworkout.elapsed"
-        static let interval = "activeworkout.interval"
-        static let start = "activeworkout.start"
-        static let pause = "activeworkout.pause"
-        static let resume = "activeworkout.resume"
-        static let lap = "activeworkout.lap"
-        static let end = "activeworkout.end"
-        static let discard = "activeworkout.discard"
-        static let retry = "activeworkout.retry"
-        static let done = "activeworkout.done"
-        static let recoveryBanner = "activeworkout.recoveryBanner"
     }
 
     enum Notifications {
